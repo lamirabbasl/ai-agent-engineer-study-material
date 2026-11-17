@@ -6,7 +6,7 @@ import { useProgress } from "@/lib/progress";
 import { conceptsFor, problems } from "@/lib/concepts";
 import { LEVEL_LABEL, PHASE_META, Phase, TRACKS, Topic, TrackId, phasesOf } from "@/lib/roadmap";
 import Journey from "./Journey";
-import { CodeBlock, Rich } from "./Rich";
+import { Answer, CodeBlock, Rich } from "./Rich";
 
 
 type Filter = "all" | "todo" | "doing" | "done";
@@ -53,7 +53,7 @@ function Ring({ value, size = 56, stroke = 5, color, children }: { value: number
   );
 }
 
-function Check({ checked, onChange, children, className }: { checked: boolean; onChange: () => void; children: React.ReactNode; className?: string }) {
+function Check({ checked, onChange, children, className, answer }: { checked: boolean; onChange: () => void; children: React.ReactNode; className?: string; answer?: string }) {
   return (
     <li>
       <label className={className}>
@@ -61,6 +61,7 @@ function Check({ checked, onChange, children, className }: { checked: boolean; o
         <span className="box" />
         <span className={checked ? "txt done" : "txt"}>{children}</span>
       </label>
+      <Answer body={answer} />
     </li>
   );
 }
@@ -342,7 +343,7 @@ export default function Roadmap({ track = "ai" }: { track?: TrackId }) {
 
                               {tt === "qs" && (
                                 <ul className="checks q">
-                                  {t.questions.map((i) => <Check key={i.id} checked={!!done[i.id]} onChange={() => toggle(i.id)}>{i.text}</Check>)}
+                                  {t.questions.map((i) => <Check key={i.id} checked={!!done[i.id]} onChange={() => toggle(i.id)} answer={i.answer}>{i.text}</Check>)}
                                 </ul>
                               )}
 

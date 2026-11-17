@@ -48,6 +48,7 @@ export interface Concept {
 export interface Entry {
   id: string;
   text: string;
+  answer?: string;
 }
 export interface Topic {
   key: string;
@@ -76,7 +77,7 @@ interface RawTopic {
   title: string;
   summary: string;
   items: string[];
-  questions?: string[];
+  questions?: (string | { q: string; a: string })[];
   resources?: string[];
   concepts?: Concept[];
 }
@@ -167,7 +168,10 @@ const build = (track: TrackId) => raw[track].map((p, index): Phase => {
         title: t.title,
         summary: t.summary,
         items: t.items.map((text) => ({ id: `${key}.i.${slug(text)}`, text })),
-        questions: (t.questions ?? []).map((text) => ({ id: `${key}.q.${slug(text)}`, text })),
+        questions: (t.questions ?? []).map((x) => {
+          const [text, answer] = typeof x === "string" ? [x, undefined] : [x.q, x.a];
+          return { id: `${key}.q.${slug(text)}`, text, answer };
+        }),
         resources: t.resources ?? [],
         concepts: [...(t.concepts ?? []), ...(deepDives[key] ?? [])],
       };

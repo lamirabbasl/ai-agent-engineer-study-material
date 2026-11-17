@@ -22,9 +22,18 @@
      "Objects compare by reference: {} === {} is false"
     ],
     "questions": [
-     "What does [] + {} return? And [] == false?",
-     "Difference between null and undefined?",
-     "How do you deep-copy an object? (structuredClone)"
+     {
+      "q": "What does [] + {} return? And [] == false?",
+      "a": "- `[] + {}` → \"[object Object]\". Both become strings: \"\" + \"[object Object]\".\n- `[] == false` → true. [] → \"\" → 0, and false → 0.\nLesson: use === to avoid coercion surprises."
+     },
+     {
+      "q": "Difference between null and undefined?",
+      "a": "- undefined: a value was never assigned (missing variable value, missing property, function with no return).\n- null: deliberately \"no value\", set by the programmer.\n- `typeof undefined` is \"undefined\", `typeof null` is \"object\" (a historical bug).\n- `null == undefined` is true, `null === undefined` is false. `x == null` checks both at once."
+     },
+     {
+      "q": "How do you deep-copy an object?",
+      "a": "`structuredClone(obj)`: built in, handles nested objects, arrays, Dates, Maps, Sets and cycles. It can't copy functions or DOM nodes.\n- `{...obj}` / `Object.assign` are shallow: nested objects are still shared.\n- `JSON.parse(JSON.stringify(obj))` is the old trick: loses Dates (become strings), undefined, functions, Maps, and fails on cycles."
+     }
     ],
     "resources": [
      "MDN: Equality comparisons and sameness",
@@ -50,9 +59,18 @@
      "Use closures for private state, factories, debounce and memoisation"
     ],
     "questions": [
-     "What does a for loop with var and setTimeout log? How do you fix it?",
-     "Explain a closure with an example you would use in real code",
-     "Implement a counter with private state"
+     {
+      "q": "What does a for loop with var and setTimeout log? How do you fix it?",
+      "a": "```js\nfor (var i = 0; i < 3; i++) setTimeout(() => console.log(i));  // 3 3 3\n```\n`var` creates one shared `i`; the callbacks run after the loop, when i is 3.\nFix: use `let` (a new binding per iteration) → 0 1 2. Older fix: an IIFE that captures i."
+     },
+     {
+      "q": "Explain a closure with an example you would use in real code",
+      "a": "A closure is a function that remembers the variables from the scope where it was created, even after that scope has finished.\nReal example: debounce. The returned function keeps access to the `timer` variable between calls.\n```js\nfunction debounce(fn, ms) {\n  let timer;                              // captured by the closure\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn(...args), ms);\n  };\n}\nconst onSearch = debounce((q) => fetchResults(q), 300);\n```\nOther uses: private state, memoisation caches, React hooks (each render's handlers close over that render's state)."
+     },
+     {
+      "q": "Implement a counter with private state",
+      "a": "```js\nfunction createCounter(start = 0) {\n  let count = start;                      // not reachable from outside\n  return {\n    increment: () => ++count,\n    decrement: () => --count,\n    value: () => count,\n  };\n}\n```\nOr with a class and a private field: `class Counter { #n = 0; inc() { return ++this.#n; } }`."
+     }
     ],
     "resources": [
      "javascript.info: Closures",
@@ -77,8 +95,14 @@
      "class is syntax over prototypes; know constructor, extends, super, static, #private"
     ],
     "questions": [
-     "Why does a method lose `this` when passed as a callback? Two ways to fix it",
-     "Arrow vs regular function: three differences"
+     {
+      "q": "Why does a method lose `this` when passed as a callback? Two ways to fix it",
+      "a": "`this` is decided by how a function is called. `button.addEventListener(\"click\", obj.save)` passes the function alone, so when it's called, it's not called as `obj.save()` and `this` is no longer obj.\nFixes:\n1. Bind: `obj.save.bind(obj)`\n2. Arrow wrapper: `() => obj.save()`\n(3. In classes, define the method as an arrow-function field: `save = () => {...}`.)"
+     },
+     {
+      "q": "Arrow vs regular function: three differences",
+      "a": "1. Arrow functions have no own `this`; they use the surrounding `this`.\n2. No `arguments` object (use rest params `...args`).\n3. Can't be used as constructors with `new`, and have no `prototype`.\n(Also: arrow functions aren't hoisted like function declarations, and can have an implicit return.)"
+     }
     ],
     "resources": [
      "MDN: this",
@@ -104,9 +128,18 @@
      "Shallow copies: {...obj}, [...arr]; deep: structuredClone"
     ],
     "questions": [
-     "Implement groupBy with reduce",
-     "Difference between ?? and ||",
-     "Why does [10, 1, 2].sort() give [1, 10, 2]?"
+     {
+      "q": "Implement groupBy with reduce",
+      "a": "```js\nconst groupBy = (arr, keyFn) =>\n  arr.reduce((acc, x) => {\n    const k = keyFn(x);\n    (acc[k] ??= []).push(x);\n    return acc;\n  }, {});\ngroupBy(txs, (t) => t.category);\n```\nModern JS also has `Object.groupBy(arr, keyFn)`."
+     },
+     {
+      "q": "Difference between ?? and ||",
+      "a": "- `a || b` returns b if a is any falsy value (0, \"\", false, null, undefined, NaN).\n- `a ?? b` returns b only if a is null or undefined.\nSo `0 || 10` is 10 but `0 ?? 10` is 0. Use ?? for defaults where 0 or \"\" are valid values (amounts, counts, empty strings)."
+     },
+     {
+      "q": "Why does [10, 1, 2].sort() give [1, 10, 2]?",
+      "a": "Default sort compares items as strings: \"1\" < \"10\" < \"2\". Use `arr.sort((a, b) => a - b)` for numbers."
+     }
     ],
     "resources": [
      "MDN: Array"
@@ -161,8 +194,14 @@
      "Rendering happens between macrotasks; long tasks freeze the UI"
     ],
     "questions": [
-     "Predict the output order of a snippet mixing console.log, setTimeout and Promise.then",
-     "Why doesn't setTimeout(fn, 0) run immediately?"
+     {
+      "q": "Predict the output order of a snippet mixing console.log, setTimeout and Promise.then",
+      "a": "Rule: all synchronous code first → then all microtasks (promise callbacks, code after await) → then macrotasks (setTimeout).\n```js\nconsole.log(\"A\");\nsetTimeout(() => console.log(\"B\"));\nPromise.resolve().then(() => console.log(\"C\"));\nconsole.log(\"D\");\n// A D C B\n```"
+     },
+     {
+      "q": "Why doesn't setTimeout(fn, 0) run immediately?",
+      "a": "It schedules fn as a macrotask. The event loop only runs it after the current synchronous code has finished and every queued microtask (promises) has run. The 0 is a minimum delay, not a guarantee (browsers may clamp it to ~4ms when nested)."
+     }
     ],
     "resources": [
      "javascript.info: Event loop",
@@ -188,9 +227,18 @@
      "Run independent requests in parallel, not one after another"
     ],
     "questions": [
-     "Promise.all vs Promise.allSettled: when to use each?",
-     "What is wrong with `await` inside a forEach?",
-     "Implement a sleep(ms) helper"
+     {
+      "q": "Promise.all vs Promise.allSettled: when to use each?",
+      "a": "- `Promise.all`: rejects as soon as any promise rejects. Use when you need all results (e.g. user + account to render a page).\n- `Promise.allSettled`: waits for all and gives each result as fulfilled/rejected. Use when partial success is fine (e.g. load several dashboard widgets; show errors per widget).\n- Also: `Promise.race` (first to settle) for timeouts, `Promise.any` (first to succeed)."
+     },
+     {
+      "q": "What is wrong with `await` inside a forEach?",
+      "a": "forEach ignores the promise each callback returns, so it doesn't wait. Code after the forEach runs before the work finishes, and errors aren't caught.\n```js\nfor (const id of ids) await save(id);               // one after another\nawait Promise.all(ids.map((id) => save(id)));       // in parallel\n```"
+     },
+     {
+      "q": "Implement a sleep(ms) helper",
+      "a": "```js\nconst sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));\nawait sleep(500);\n```"
+     }
     ],
     "resources": [
      "MDN: Using promises"
@@ -213,7 +261,10 @@
      "Loading, error and empty states in the UI"
     ],
     "questions": [
-     "Write a fetchJson helper that throws on non-2xx and supports a timeout"
+     {
+      "q": "Write a fetchJson helper that throws on non-2xx and supports a timeout",
+      "a": "```js\nasync function fetchJson(url, { timeout = 8000, ...opts } = {}) {\n  const ctrl = new AbortController();\n  const timer = setTimeout(() => ctrl.abort(), timeout);\n  try {\n    const res = await fetch(url, { ...opts, signal: ctrl.signal });\n    if (!res.ok) throw new Error(`HTTP ${res.status}`);\n    return await res.json();\n  } finally {\n    clearTimeout(timer);\n  }\n}\n```\nKey points: fetch doesn't reject on 404/500, so check res.ok; always clear the timer."
+     }
     ],
     "resources": [
      "MDN: Using Fetch"
@@ -267,9 +318,18 @@
      "Optional (?) and readonly; non-null assertion ! and why to avoid it"
     ],
     "questions": [
-     "When would you choose type over interface?",
-     "any vs unknown?",
-     "Model a request state so you can't read data while loading"
+     {
+      "q": "When would you choose type over interface?",
+      "a": "- interface: object shapes that may be extended or merged (public APIs, props). Supports `extends` and declaration merging.\n- type: anything else, especially unions (`\"idle\" | \"loading\"`), intersections, tuples, mapped and conditional types.\nMany teams: interface for objects, type for unions. Either is fine for plain props; just be consistent."
+     },
+     {
+      "q": "any vs unknown?",
+      "a": "- any: turns off type checking. Anything goes, bugs slip through.\n- unknown: you can hold any value but must narrow it before use (typeof, instanceof, a type guard or a schema like zod).\nUse unknown for untrusted data (API responses, JSON.parse, catch errors)."
+     },
+     {
+      "q": "Model a request state so you can't read data while loading",
+      "a": "Discriminated union: `data` only exists in the success case, so TypeScript stops you reading it while loading.\n```ts\ntype State<T> =\n  | { status: \"idle\" }\n  | { status: \"loading\" }\n  | { status: \"error\"; error: string }\n  | { status: \"success\"; data: T };\nif (s.status === \"success\") s.data; // OK only here\n```"
+     }
     ],
     "resources": [
      "TypeScript Handbook: Narrowing"
@@ -293,8 +353,14 @@
      "Typing React props, events and useState"
     ],
     "questions": [
-     "Write a typed groupBy<T, K extends keyof T>",
-     "What does Omit<User, 'password'> do?"
+     {
+      "q": "Write a typed groupBy<T, K extends keyof T>",
+      "a": "```ts\nfunction groupBy<T, K extends keyof T>(items: T[], key: K): Record<string, T[]> {\n  const out: Record<string, T[]> = {};\n  for (const item of items) {\n    const k = String(item[key]);\n    (out[k] ??= []).push(item);\n  }\n  return out;\n}\ngroupBy(transactions, \"category\");   // \"categry\" would be a compile error\n```"
+     },
+     {
+      "q": "What does Omit<User, 'password'> do?",
+      "a": "Creates a new type with all of User's properties except password. Useful for public DTOs: `type PublicUser = Omit<User, \"password\">`. Opposite: `Pick<User, \"id\" | \"name\">`."
+     }
     ],
     "resources": [
      "TypeScript Handbook: Generics",
@@ -342,8 +408,14 @@
      "ARIA only when no native element exists (aria-label, aria-expanded, role)"
     ],
     "questions": [
-     "Why is a div with onClick worse than a button?",
-     "How would you make a custom dropdown accessible?"
+     {
+      "q": "Why is a div with onClick worse than a button?",
+      "a": "A `<button>` gives you for free: keyboard focus (Tab), activation with Enter and Space, the \"button\" role for screen readers, disabled state and form submission. A div has none of that; you'd need tabindex, role, key handlers and focus styles to fake it."
+     },
+     {
+      "q": "How would you make a custom dropdown accessible?",
+      "a": "- Prefer a native `<select>` if the design allows.\n- Otherwise: a `<button aria-haspopup=\"listbox\" aria-expanded>` that opens a `role=\"listbox\"` with `role=\"option\"` items and `aria-selected`.\n- Keyboard: arrows move, Enter/Space selects, Escape closes and returns focus to the button, Home/End.\n- Label it, keep visible focus, close on outside click.\nOr use a tested library (Radix, Headless UI, React Aria)."
+     }
     ],
     "resources": [
      "MDN: Accessibility",
@@ -364,9 +436,18 @@
      "Margin collapsing between vertical block margins"
     ],
     "questions": [
-     "Center a div horizontally and vertically, three ways",
-     "Build a responsive card grid without media queries",
-     "Flexbox vs grid: when each?"
+     {
+      "q": "Center a div horizontally and vertically, three ways",
+      "a": "```css\n.parent { display: grid; place-items: center; }\n.parent { display: flex; justify-content: center; align-items: center; }\n.child  { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }\n```\n(Horizontal only, for a block with a width: `margin: 0 auto`.)"
+     },
+     {
+      "q": "Build a responsive card grid without media queries",
+      "a": "```css\n.grid {\n  display: grid;\n  gap: 16px;\n  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));\n}\n```\nColumns appear and disappear as space allows; each card is at least 220px. Use auto-fit instead of auto-fill to stretch cards when there are few items."
+     },
+     {
+      "q": "Flexbox vs grid: when each?",
+      "a": "- Flexbox: one dimension (a row or a column). Toolbars, nav bars, aligning items in a line, content-driven sizing.\n- Grid: two dimensions (rows and columns together). Page layouts, card grids, dashboards.\nThey combine well: grid for the page, flex inside components."
+     }
     ],
     "resources": [
      "CSS-Tricks: Guide to Flexbox",
@@ -393,8 +474,14 @@
      "Transforms and opacity animate cheaply; width/top cause layout"
     ],
     "questions": [
-     "Which selector wins: .nav a or #menu a?",
-     "rem vs em?"
+     {
+      "q": "Which selector wins: .nav a or #menu a?",
+      "a": "`#menu a`. An id beats any number of classes. Specificity: (ids, classes/attributes/pseudo-classes, elements) → #menu a = (1,0,1) vs .nav a = (0,1,1)."
+     },
+     {
+      "q": "rem vs em?",
+      "a": "- rem: relative to the root (html) font size. Predictable; good for spacing and type scales.\n- em: relative to the current element's font size, so it compounds when nested. Useful for things that should scale with their own text (button padding, icons).\nBoth respect the user's browser font-size setting, unlike px."
+     }
     ],
     "resources": [
      "MDN: Specificity"
@@ -436,9 +523,18 @@
      "Derive values during render instead of storing duplicate state"
     ],
     "questions": [
-     "Why does setCount(count + 1) twice only add 1?",
-     "Controlled vs uncontrolled components?",
-     "When do you lift state up?"
+     {
+      "q": "Why does setCount(count + 1) twice only add 1?",
+      "a": "Both calls read the same `count` from this render (say 0), so both set it to 1. State updates are batched and applied on the next render.\nFix: the functional form uses the latest queued value.\n```jsx\nsetCount((c) => c + 1);\nsetCount((c) => c + 1);   // now +2\n```"
+     },
+     {
+      "q": "Controlled vs uncontrolled components?",
+      "a": "- Controlled: React state holds the value (`value={x} onChange={e => setX(e.target.value)}`). Easy validation, formatting and conditional UI.\n- Uncontrolled: the DOM holds it; read via a ref or FormData on submit (`defaultValue`). Less code, fewer re-renders, good for simple forms.\nLibraries like react-hook-form use uncontrolled inputs for performance."
+     },
+     {
+      "q": "When do you lift state up?",
+      "a": "When two or more sibling components need the same data or need to stay in sync. Move the state to their closest common parent and pass it down as props, with callbacks to change it. If it's needed far away in the tree, consider context or a store."
+     }
     ],
     "resources": [
      "react.dev: Learn",
@@ -465,9 +561,18 @@
      "Rules of hooks: top level only, only in components or hooks"
     ],
     "questions": [
-     "What happens with a missing dependency? An object as a dependency?",
-     "Why does an effect run twice in development (Strict Mode)?",
-     "Write a useDebounce hook"
+     {
+      "q": "What happens with a missing dependency? An object as a dependency?",
+      "a": "- Missing dependency: the effect keeps using a stale value from an old render (stale closure) and doesn't re-run when it changes. Bugs that are hard to spot. The eslint rule `react-hooks/exhaustive-deps` catches it.\n- Object/array/function created during render: it's a new reference every render, so the effect runs every time (maybe in a loop if it sets state). Fix: depend on primitive fields, create it inside the effect, or memoise with useMemo/useCallback."
+     },
+     {
+      "q": "Why does an effect run twice in development (Strict Mode)?",
+      "a": "React 18+ Strict Mode mounts, unmounts and remounts components in development to expose effects without proper cleanup. It doesn't happen in production. The fix is to write effects whose cleanup undoes the setup (unsubscribe, abort fetch, clear timers), not to remove Strict Mode."
+     },
+     {
+      "q": "Write a useDebounce hook",
+      "a": "```tsx\nfunction useDebounce<T>(value: T, ms = 300): T {\n  const [debounced, setDebounced] = useState(value);\n  useEffect(() => {\n    const t = setTimeout(() => setDebounced(value), ms);\n    return () => clearTimeout(t);   // cancel if value changes before ms\n  }, [value, ms]);\n  return debounced;\n}\nconst q = useDebounce(search, 300);   // fetch with q in an effect\n```"
+     }
     ],
     "resources": [
      "react.dev: You Might Not Need an Effect",
@@ -493,8 +598,14 @@
      "Virtualise long lists"
     ],
     "questions": [
-     "Why are index keys a problem?",
-     "A list of 10,000 rows is slow. What do you check?"
+     {
+      "q": "Why are index keys a problem?",
+      "a": "Keys tell React which item is which between renders. With index keys, inserting, deleting or reordering items shifts the indexes, so React reuses the wrong component: state (like input text or checkboxes) ends up on the wrong row, and more DOM work is done. Use a stable unique id. Index is fine only for static lists that never change order."
+     },
+     {
+      "q": "A list of 10,000 rows is slow. What do you check?",
+      "a": "1. Profile first (React DevTools Profiler, Performance tab).\n2. Virtualise: only render visible rows (TanStack Virtual, react-window).\n3. Stable keys; memoise rows (React.memo) and pass stable props/callbacks.\n4. Avoid heavy work in render: precompute or useMemo for filtering/sorting.\n5. Paginate or load more from the server instead of sending 10,000 rows.\n6. Debounce filter inputs; consider useDeferredValue."
+     }
     ],
     "resources": [
      "react.dev: Preserving and Resetting State"
@@ -513,8 +624,14 @@
      "Forms and validation (react-hook-form + zod)"
     ],
     "questions": [
-     "SSR vs CSR trade-offs?",
-     "Where should server data live in a React app?"
+     {
+      "q": "SSR vs CSR trade-offs?",
+      "a": "- SSR: HTML is rendered on the server, so first content appears fast and it's SEO-friendly (search engines see full HTML). Costs server work, needs hydration, and some code must run in both environments.\n- CSR: the server sends a JS app that renders in the browser. Simple hosting, rich interactivity after load, but a slower first paint and weaker SEO.\n- SSG/ISR: pre-render at build time / periodically; fastest for content that doesn't change per user.\nExample from CRSTRIP: Nuxt SSR for SEO on booking pages plus runtime theme switching per domain."
+     },
+     {
+      "q": "Where should server data live in a React app?",
+      "a": "In a server-state cache like TanStack Query or SWR (or the framework's loaders / Server Components), not copied into useState or Redux. They handle caching, deduping, refetching, loading and error states and invalidation after mutations. Keep useState/context for UI state (open modals, form inputs, theme)."
+     }
     ],
     "resources": [
      "Next.js docs: Rendering"
@@ -561,8 +678,14 @@
      "IntersectionObserver for lazy loading and infinite scroll"
     ],
     "questions": [
-     "What is event delegation and why use it?",
-     "preventDefault vs stopPropagation?"
+     {
+      "q": "What is event delegation and why use it?",
+      "a": "Attach one listener to a parent and use `event.target` (often `closest()`) to see which child was clicked, relying on events bubbling up.\n```js\nlist.addEventListener(\"click\", (e) => {\n  const row = e.target.closest(\"li[data-id]\");\n  if (row) select(row.dataset.id);\n});\n```\nBenefits: fewer listeners (memory), works for items added later, simpler cleanup."
+     },
+     {
+      "q": "preventDefault vs stopPropagation?",
+      "a": "- preventDefault: stops the browser's default action (following a link, submitting a form, checking a box). The event still bubbles.\n- stopPropagation: stops the event bubbling to parent elements. The default action still happens.\nThey're independent; use only what you need (stopPropagation can break delegation and analytics)."
+     }
     ],
     "resources": [
      "javascript.info: Bubbling and capturing"
@@ -582,8 +705,14 @@
      "Debounce/throttle expensive handlers"
     ],
     "questions": [
-     "How did you cut the bundle by 32%? (have your real answer ready)",
-     "A page feels slow. Walk me through how you'd investigate"
+     {
+      "q": "How did you cut the bundle by 32%?",
+      "a": "Prepare your real answer. A strong structure:\n- Measured first: bundle analyser to find the biggest modules.\n- Changes, e.g.: code-split routes and heavy components with dynamic import; replaced or tree-shook large libraries (only importing what's used, lighter date/icon libs); removed dead code and duplicate dependencies; upgraded React/Next/MUI.\n- Result: 32% smaller bundle, faster page loads.\nOnly say what you actually did, and be ready for \"how did you measure it?\"."
+     },
+     {
+      "q": "A page feels slow. Walk me through how you'd investigate",
+      "a": "1. Reproduce and measure: Lighthouse / Web Vitals (LCP, INP, CLS), on a throttled connection and a slow device.\n2. Network tab: big bundles, slow API calls, waterfalls, uncompressed or uncached assets, huge images.\n3. Performance tab: long tasks on the main thread, layout thrashing, expensive re-renders (React Profiler).\n4. Fix the biggest issue first: code splitting, caching, image optimisation, parallel requests, memoisation or virtualisation.\n5. Measure again to confirm."
+     }
     ],
     "resources": [
      "web.dev: Core Web Vitals",
@@ -603,8 +732,14 @@
      "Content Security Policy; HTTPS everywhere"
     ],
     "questions": [
-     "Where would you store an auth token and why?",
-     "What is XSS and how does React help?"
+     {
+      "q": "Where would you store an auth token and why?",
+      "a": "Prefer an httpOnly, Secure, SameSite cookie set by the server: JavaScript can't read it, so an XSS bug can't steal it. Add CSRF protection (SameSite plus a CSRF token for state-changing requests).\nlocalStorage is readable by any script on the page, so any XSS leaks the token. If you must keep a token in JS, keep a short-lived access token in memory and refresh via an httpOnly cookie."
+     },
+     {
+      "q": "What is XSS and how does React help?",
+      "a": "Cross-site scripting: an attacker gets their script to run in your page (e.g. via a comment containing `<script>`), and it can steal data or act as the user.\nReact escapes values rendered in JSX by default, so text is shown as text, not run as HTML. Risks remain with `dangerouslySetInnerHTML` (sanitise with DOMPurify), `href={userInput}` (block `javascript:` URLs), and third-party scripts. Add a Content Security Policy as a second layer."
+     }
     ],
     "resources": [
      "OWASP Top 10",
@@ -622,7 +757,10 @@
      "REST vs GraphQL basics; WebSockets / SSE for live data"
     ],
     "questions": [
-     "How would you show live balance updates?"
+     {
+      "q": "How would you show live balance updates?",
+      "a": "- Server pushes changes: WebSockets (two-way) or Server-Sent Events (server → client, simpler, auto-reconnect).\n- On each event, update the cached balance (e.g. TanStack Query `setQueryData`), so the UI re-renders.\n- Handle reconnects and gaps: on reconnect, refetch the latest balance from the API (the source of truth).\n- Fallback: polling every few seconds if sockets aren't available.\n- For money: never trust only the client value; show pending states for transactions in flight."
+     }
     ],
     "resources": [],
     "concepts": []
@@ -662,9 +800,18 @@
      "Test async code with async/await and rejects.toThrow"
     ],
     "questions": [
-     "What would you test for a formatCurrency(amount, currency) function?",
-     "toBe vs toEqual?",
-     "How do you test a debounce?"
+     {
+      "q": "What would you test for a formatCurrency(amount, currency) function?",
+      "a": "- Normal: 1234.5 GBP → \"£1,234.50\"\n- Zero and negatives: 0 → \"£0.00\", -5 → \"-£5.00\"\n- Rounding: 1.005, 0.1 + 0.2\n- Large numbers and separators: 1,000,000\n- Different currencies and decimals: EUR, USD, JPY (no decimals)\n- Locale if supported\n- Invalid input: NaN, Infinity, undefined, unknown currency code → throws or a defined fallback\nMention: store money in minor units (pence) as integers to avoid float errors."
+     },
+     {
+      "q": "toBe vs toEqual?",
+      "a": "`toBe` checks identity with Object.is, right for primitives (numbers, strings, booleans). `toEqual` compares structure recursively, needed for objects and arrays (`expect({a: 1}).toEqual({a: 1})` passes, `toBe` fails). `toStrictEqual` also checks undefined properties and class types."
+     },
+     {
+      "q": "How do you test a debounce?",
+      "a": "Use fake timers so the test doesn't actually wait.\n```ts\nvi.useFakeTimers();\nconst fn = vi.fn();\nconst d = debounce(fn, 300);\nd(\"a\"); d(\"b\");\nvi.advanceTimersByTime(299);\nexpect(fn).not.toHaveBeenCalled();\nvi.advanceTimersByTime(1);\nexpect(fn).toHaveBeenCalledTimes(1);\nexpect(fn).toHaveBeenCalledWith(\"b\");\n```"
+     }
     ],
     "resources": [
      "Vitest docs",
@@ -689,8 +836,14 @@
      "Mock fetch or use MSW for network"
     ],
     "questions": [
-     "How would you test a login form?",
-     "getBy vs queryBy vs findBy?"
+     {
+      "q": "How would you test a login form?",
+      "a": "With Testing Library, from the user's point of view (mock the API with MSW or a mocked function):\n- Renders email and password fields with labels and a submit button\n- Shows validation errors for an empty or invalid email, without calling the API\n- Submits the right data and shows a loading state (button disabled)\n- On success: redirects or shows the logged-in state\n- On a 401: shows \"wrong email or password\" and keeps the email filled in\n- On a network error: shows a retry message\n- Accessibility: submit with Enter; errors linked to fields"
+     },
+     {
+      "q": "getBy vs queryBy vs findBy?",
+      "a": "- getBy: element must exist now; throws if missing. Default choice.\n- queryBy: returns null if missing; use to assert something is NOT there (`expect(queryByText(\"Error\")).toBeNull()`).\n- findBy: async; waits until the element appears (returns a promise). Use after fetches or timers.\nEach has an *AllBy* version for multiple elements."
+     }
     ],
     "resources": [
      "Testing Library docs: Guiding principles",
@@ -714,8 +867,14 @@
      "Error boundaries in React"
     ],
     "questions": [
-     "What would you test first in a payments screen?",
-     "How do you decide what NOT to test?"
+     {
+      "q": "What would you test first in a payments screen?",
+      "a": "The flows where a bug costs money or trust:\n1. Correct amount and currency shown and sent (formatting, rounding, minor units)\n2. Validation: insufficient balance, invalid amount, zero/negative, limits\n3. No double submission (button disabled while pending; idempotency key)\n4. Error states: network failure, declined payment, timeout, with a clear message and no lost input\n5. Success state and the balance/transactions updating\nPlus one end-to-end test of the happy path."
+     },
+     {
+      "q": "How do you decide what NOT to test?",
+      "a": "Skip tests that only re-check the framework or third-party code, trivial getters and pure markup, and implementation details (internal state, private functions) that make tests break on harmless refactors. Focus on behaviour users rely on, business rules, edge cases and things that have broken before. Aim for confidence per test, not a coverage number."
+     }
     ],
     "resources": [
      "Playwright docs"
@@ -766,8 +925,14 @@
      "Form with validation and error messages"
     ],
     "questions": [
-     "Build a transactions list with a filter by category and a total",
-     "Build a currency converter input"
+     {
+      "q": "Build a transactions list with a filter by category and a total",
+      "a": "Plan out loud: data → state (selected category) → derived values (filtered list, total) → UI states.\n```tsx\ntype Tx = { id: string; label: string; category: string; amountPence: number };\n\nfunction Transactions({ txs }: { txs: Tx[] }) {\n  const [cat, setCat] = useState(\"all\");\n  const categories = useMemo(() => [\"all\", ...new Set(txs.map((t) => t.category))], [txs]);\n  const shown = cat === \"all\" ? txs : txs.filter((t) => t.category === cat);\n  const total = shown.reduce((s, t) => s + t.amountPence, 0);\n  const fmt = (p: number) => new Intl.NumberFormat(\"en-GB\", { style: \"currency\", currency: \"GBP\" }).format(p / 100);\n\n  return (\n    <section>\n      <label>Category{\" \"}\n        <select value={cat} onChange={(e) => setCat(e.target.value)}>\n          {categories.map((c) => <option key={c}>{c}</option>)}\n        </select>\n      </label>\n      {shown.length === 0 ? <p>No transactions.</p> : (\n        <ul>{shown.map((t) => <li key={t.id}>{t.label}: {fmt(t.amountPence)}</li>)}</ul>\n      )}\n      <p><b>Total: {fmt(total)}</b></p>\n    </section>\n  );\n}\n```\nMention: amounts in pence (integers), derived state instead of extra useState, empty state, accessibility (label), then tests."
+     },
+     {
+      "q": "Build a currency converter input",
+      "a": "```tsx\nfunction Converter({ rate }: { rate: number }) {   // e.g. GBP → EUR\n  const [gbp, setGbp] = useState(\"\");\n  const n = Number(gbp);\n  const valid = gbp !== \"\" && Number.isFinite(n) && n >= 0;\n  return (\n    <div>\n      <label>Amount (GBP)\n        <input inputMode=\"decimal\" value={gbp} onChange={(e) => setGbp(e.target.value)} />\n      </label>\n      {gbp && !valid && <p role=\"alert\">Enter a valid amount</p>}\n      <output>{valid ? (n * rate).toFixed(2) + \" EUR\" : \"–\"}</output>\n    </div>\n  );\n}\n```\nTalk about: validation, decimal input on mobile, rounding (and doing money maths in minor units), fetching the rate (loading/error, staleness), a swap button, and tests for edge cases (empty, \"abc\", negative, huge numbers)."
+     }
     ],
     "resources": [
      "GreatFrontEnd (free questions)",
@@ -792,8 +957,14 @@
      "Accessibility and internationalisation (your 3-language switch at CRSTRIP)"
     ],
     "questions": [
-     "Design a transaction history screen for a banking app",
-     "Design an autocomplete component"
+     {
+      "q": "Design a transaction history screen for a banking app",
+      "a": "Structure your answer:\n1. Requirements: list grouped by day, search and filters (category, date, amount), details view, pending vs completed, multiple currencies.\n2. Data: paginated API with a cursor; infinite scroll; TanStack Query for caching and refetch; optimistic updates are rare here (read-heavy).\n3. Components: TransactionList (virtualised) → DayGroup → TransactionRow; FilterBar; TransactionDetail drawer/page.\n4. State: filters in the URL (shareable, back button works); server data in the query cache.\n5. UX states: loading skeletons, empty, error with retry, offline banner, pending badges.\n6. Performance: virtualisation, image/icon caching, prefetch the next page.\n7. Accessibility and i18n: screen-reader labels for amounts (\"minus 20 pounds\"), date/currency formatting with Intl.\n8. Security: no sensitive data in logs/URLs, auto-logout."
+     },
+     {
+      "q": "Design an autocomplete component",
+      "a": "- Input with debounce (~300ms); cancel stale requests with AbortController so old results can't overwrite new ones.\n- Cache results per query; minimum characters before searching.\n- Keyboard: up/down to move, Enter to select, Escape to close; highlight the matching text.\n- Accessibility: combobox pattern (`role=\"combobox\"`, `aria-expanded`, `aria-controls`, `aria-activedescendant`, a `listbox` of `option`s).\n- States: loading, no results, error.\n- Performance: limit results, virtualise if long.\n- API: `<Autocomplete fetchOptions onSelect renderOption />`."
+     }
     ],
     "resources": [
      "GreatFrontEnd: Front End System Design"
@@ -812,9 +983,18 @@
      "A mistake you learned from (e.g. the assessment checklist you now follow)"
     ],
     "questions": [
-     "Tell me about a technical challenge you're proud of",
-     "Tell me about a time you worked under pressure",
-     "Why Revolut, and why frontend?"
+     {
+      "q": "Tell me about a technical challenge you're proud of",
+      "a": "Use STAR, about 90 seconds. Nobatix double booking is a strong choice:\n- Situation: online booking platform for clinics and salons in beta.\n- Task: two customers must never book the same slot.\n- Action: first DB transactions with checks in app logic; as load grew, added Redis to coordinate slot reservations, with the DB staying the source of truth; designed appointments as snapshots plus nullable external IDs.\n- Result: correct under concurrency, scalable, and history stays accurate.\nLink: \"same problem as making sure money can't be spent twice.\""
+     },
+     {
+      "q": "Tell me about a time you worked under pressure",
+      "a": "Use STAR with a real example. Options:\n- Getting Simorgh's proposals, website and referral materials ready while studying full-time on an MSc.\n- A deadline at CRSTRIP delivering white-label booking sites for several clients from one codebase.\nShow: how you prioritised (what mattered most), how you communicated with the team, what you delivered, and one thing you'd do differently. Keep it calm and concrete."
+     },
+     {
+      "q": "Why Revolut, and why frontend?",
+      "a": "- Why Revolut: scale (tens of millions of customers, so the work matters), a culture of speed and ownership that matches how you've worked in your own company, and a strong graduate programme with mentorship.\n- Why frontend: it's where you have the most production experience (CRSTRIP, HARA AI, Nobatix); you like owning what users actually touch; at a bank, frontend is real engineering (performance, reliability, security, accessibility). Longer term you want to bring AI into products, and great product engineers understand the interface."
+     }
     ],
     "resources": [
      "Your Revolut_Prep.md on the Desktop"

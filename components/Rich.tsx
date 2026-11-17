@@ -112,3 +112,13 @@ export function Rich({ body }: { body: string }) {
     </div>
   );
 }
+
+export function Answer({ body }: { body?: string }) {
+  if (!body) return null;
+  return (
+    <details className="answer">
+      <summary>Show answer</summary>
+      <Rich body={body} />
+    </details>
+  );
+}

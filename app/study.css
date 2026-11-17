@@ -354,3 +354,8 @@ html { scroll-padding-top: 130px; }
   .toc ul { display: none; max-height: 60vh; overflow: auto; margin-top: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 6px 0; box-shadow: 0 12px 30px rgba(0,0,0,0.25); }
   .toc ul.open { display: block; }
 }
+.answer { margin: 2px 8px 8px 42px; }
+.answer summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--orange-d); list-style: none; width: fit-content; padding: 2px 8px; border-radius: 8px; background: var(--soft); }
+.answer summary::-webkit-details-marker { display: none; }
+.answer[open] summary { margin-bottom: 6px; }
+.answer .rich { font-size: 14px; border-left: 3px solid var(--orange); padding-left: 12px; }

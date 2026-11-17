@@ -7,7 +7,7 @@ import { phaseProgress, useProgress } from "@/lib/progress";
 import { conceptsFor, problems, technologies } from "@/lib/concepts";
 import ConceptCard from "./ConceptCard";
 import Checkpoint from "./Checkpoint";
-import { Rich } from "./Rich";
+import { Answer, Rich } from "./Rich";
 import Scenarios from "./Scenarios";
 import Toc from "./Toc";
 import { scenariosFor } from "@/lib/scenarios";
@@ -59,6 +59,7 @@ function TopicStudy({ t }: { t: Topic }) {
                       <span className="box" />
                       <span className={done[i.id] ? "txt done" : "txt"}>{i.text}</span>
                     </label>
+                    <Answer body={i.answer} />
                   </li>
                 ))}
               </ul>
