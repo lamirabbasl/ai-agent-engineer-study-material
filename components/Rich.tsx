@@ -13,9 +13,14 @@ function tex(src: string, display: boolean) {
 
 const INLINE = /(?<![\\$])\$(?![\s\d$])((?:[^$\n\\]|\\.)+?)(?<![\s\\])\$(?!\d)/g;
 
+function Code({ text }: { text: string }) {
+  const bits = text.split(/`([^`\n]+)`/g);
+  return <>{bits.map((b, i) => (i % 2 ? <code key={i} className="ic">{b}</code> : b))}</>;
+}
+
 function Bold({ text }: { text: string }) {
   const bits = text.split(/\*\*(.+?)\*\*/g);
-  return <>{bits.map((b, i) => (i % 2 ? <strong key={i}>{b}</strong> : b))}</>;
+  return <>{bits.map((b, i) => (i % 2 ? <strong key={i}><Code text={b} /></strong> : <Code key={i} text={b} />))}</>;
 }
 
 /** Renders text with inline $math$ spans and **bold**. */

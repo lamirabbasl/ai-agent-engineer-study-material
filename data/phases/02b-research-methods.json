@@ -1,0 +1,100 @@
+{
+  "id": "research-methods",
+  "title": "Research Methodology and ISI/Scopus Publication",
+  "tagline": "Literature review, PRISMA, research gaps, experimental design, statistical tests, model comparison, paper writing, journal selection, tools and an 18-month plan.",
+  "level": "advanced",
+  "color": "#fbbf24",
+  "icon": "🔬",
+  "short": "Research Methods",
+  "topics": [
+    {
+      "id": "research-foundations",
+      "title": "Scientific research methodology and finding a gap",
+      "summary": "From a vague interest to a defensible research design.",
+      "items": [
+        "Research problem, questions, objectives and hypotheses",
+        "Conceptual and theoretical framework",
+        "Quantitative vs qualitative vs mixed methods",
+        "Research ethics, limitations and reproducible research",
+        "Literature review vs Systematic Literature Review (SLR)",
+        "PRISMA workflow and flow diagram",
+        "Databases: Web of Science, Scopus, Google Scholar, IEEE Xplore, ScienceDirect, SpringerLink, PubMed, arXiv",
+        "Comparison matrix of 40+ papers; spotting weaknesses and limitations",
+        "Writing the gap statement and the contribution list"
+      ],
+      "questions": [
+        "What separates a research question from a hypothesis?",
+        "Walk through a PRISMA flow diagram.",
+        "How do you decide a gap is real and worth pursuing?"
+      ],
+      "resources": ["PRISMA 2020 statement", "Kitchenham SLR guidelines", "Connected Papers / Semantic Scholar"]
+    },
+    {
+      "id": "experiments-statistics",
+      "title": "Experimental design and statistical analysis for ML papers",
+      "summary": "Everything reviewers expect in the evidence section.",
+      "items": [
+        "Dataset selection, description and external validation",
+        "Baseline selection and fair tuning budgets",
+        "Training, validation, hyper-parameter tuning and cross-validation",
+        "Random-seed control and reproducibility",
+        "Ablation, sensitivity and robustness analysis",
+        "Computational complexity, runtime and memory analysis",
+        "Normality tests: Shapiro-Wilk, Kolmogorov-Smirnov",
+        "t-tests (independent, paired), Wilcoxon signed-rank, Mann-Whitney U",
+        "ANOVA, Kruskal-Wallis, Friedman with Nemenyi post-hoc, McNemar",
+        "Confidence intervals, Cohen's d and other effect sizes",
+        "Bonferroni and Holm corrections; bootstrap and permutation tests",
+        "Cross-dataset validation, noise and missing-data robustness, stability, interpretability, uncertainty"
+      ],
+      "questions": [
+        "Which test compares three models over ten datasets, and why?",
+        "Why not run a paired t-test on CV folds?",
+        "How do you show each component of your model matters?"
+      ],
+      "resources": ["Demsar (2006) Statistical comparisons of classifiers over multiple data sets", "Dietterich (1998) Approximate statistical tests", "NeurIPS reproducibility checklist"]
+    },
+    {
+      "id": "writing-publishing",
+      "title": "Paper writing, journal selection and peer review",
+      "summary": "Write, submit, revise and publish ethically.",
+      "items": [
+        "Paper structure: title, abstract, introduction, related work, methods, results, discussion, conclusion",
+        "Mathematical formulation, notation tables, algorithm boxes",
+        "Figures, tables, captions and equations",
+        "LaTeX, IEEEtran/Elsevier templates, Overleaf, BibTeX, Zotero/Mendeley",
+        "Academic English and revision workflow",
+        "ISI/Web of Science, JCR quartiles, Scopus, CORE, predatory-journal red flags",
+        "Cover letter, submission package and preprints",
+        "Responding to reviewers point by point",
+        "Publication ethics: plagiarism, authorship, data integrity, AI-use disclosure"
+      ],
+      "questions": [
+        "What goes into a strong abstract?",
+        "How do you respond to a reviewer you disagree with?",
+        "How do you verify that a journal is genuinely indexed?"
+      ],
+      "resources": ["Elsevier / IEEE author guidelines", "COPE publication ethics", "Clarivate Master Journal List"]
+    },
+    {
+      "id": "tools-roadmap",
+      "title": "Tools, courses and the 18-month plan",
+      "summary": "Set up the toolbox and follow a schedule to submission.",
+      "items": [
+        "Python, Jupyter, Colab, PyTorch, TensorFlow, scikit-learn",
+        "MATLAB, SPSS, R for engineering and statistics fields",
+        "LaTeX, Overleaf, Zotero, Mendeley",
+        "Git/GitHub, Weights & Biases, MLflow, Optuna",
+        "Stanford CS229/CS230, MIT OpenCourseWare, CMU ML Department",
+        "18-month roadmap: maths and Python, ML, advanced ML, DL, advanced DL, methodology, implementation, publication",
+        "Priority table of topics and principles of a strong paper",
+        "Personalising by field, level, goal and weekly hours"
+      ],
+      "questions": [
+        "What would you cut from the 18-month plan at 8 hours per week?",
+        "Which topics are essential for any ISI paper?"
+      ],
+      "resources": ["Stanford CS229 / CS230", "MIT OCW 18.06, 18.05, 6.036", "CMU 10-601 / 10-701"]
+    }
+  ]
+}

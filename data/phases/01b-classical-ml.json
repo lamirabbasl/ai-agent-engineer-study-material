@@ -1,0 +1,212 @@
+{
+  "id": "classical-ml",
+  "title": "Classical Machine Learning (complete university syllabus)",
+  "tagline": "Python, data preprocessing, every regression/classification/clustering/dimensionality-reduction/association algorithm, ensembles, learning theory, hyper-parameter optimisation and all evaluation metrics.",
+  "level": "foundation",
+  "color": "#34d399",
+  "icon": "🧮",
+  "short": "Classical ML",
+  "topics": [
+    {
+      "id": "python-stack",
+      "title": "Python programming and the ML library stack",
+      "summary": "The programming foundation and the libraries every experiment uses.",
+      "items": [
+        "Python fundamentals: variables, data types, conditionals, loops, functions",
+        "Lists, tuples, dictionaries, sets; comprehensions and generators",
+        "Object-oriented programming: classes, objects, inheritance, dunder methods",
+        "File handling, exception handling, modules and packages",
+        "Virtual environments (venv/conda/uv), pinned dependencies, Git",
+        "Debugging (traceback, pdb), unit tests, profiling",
+        "Algorithms and data structures: Big-O, hashing, heaps, sorting",
+        "NumPy: arrays, broadcasting, vectorisation, linear algebra",
+        "Pandas: DataFrame, groupby, merge, datetime, missing values",
+        "Matplotlib and Seaborn: publication-quality plots",
+        "SciPy and Statsmodels: distributions, tests, OLS tables, ARIMA",
+        "Scikit-learn: estimator API, pipelines, ColumnTransformer, model_selection",
+        "XGBoost, LightGBM, CatBoost, SHAP, PyTorch, TensorFlow/Keras overview"
+      ],
+      "questions": [
+        "Why put preprocessing inside a Pipeline?",
+        "What is the difference between a list and a NumPy array for numerical work?",
+        "How do you make an experiment reproducible in Python?"
+      ],
+      "resources": ["Python for Data Analysis (McKinney)", "Scikit-learn user guide", "NumPy and Pandas official tutorials"]
+    },
+    {
+      "id": "data-preprocessing",
+      "title": "Data science and data preprocessing",
+      "summary": "EDA, cleaning, missing values, outliers, scaling, encoding, imbalance, selection, augmentation and leakage.",
+      "items": [
+        "Data collection and integration (joins, deduplication)",
+        "Exploratory data analysis (distributions, correlations, missingness maps)",
+        "Data cleaning and noise removal",
+        "Missing-value treatment: MCAR/MAR/MNAR, mean/median, KNN, iterative imputation",
+        "Outlier detection: z-score, IQR, Mahalanobis, Isolation Forest, LOF",
+        "Normalisation and standardisation: z-score, min-max, robust, power transforms",
+        "Categorical encoding: one-hot, ordinal, target, frequency, hashing, embeddings",
+        "Feature extraction and feature engineering (lags, ratios, interactions, cyclical)",
+        "Feature selection: filter, wrapper (RFE), embedded (lasso, trees)",
+        "Imbalanced datasets: class weights, threshold moving, SMOTE, undersampling",
+        "Data augmentation (images, text, audio, time series, tabular)",
+        "Train/validation/test splits: stratified, group, time-series, nested CV",
+        "Data leakage: target, train-test, temporal and group leakage audits",
+        "Data visualisation for papers"
+      ],
+      "questions": [
+        "Name five forms of data leakage and how to prevent each.",
+        "Why is SMOTE applied only inside training folds?",
+        "MCAR vs MAR vs MNAR: how does each change imputation?"
+      ],
+      "resources": ["Feature Engineering and Selection (Kuhn & Johnson)", "imbalanced-learn documentation", "Kaggle Learn: Data Cleaning"]
+    },
+    {
+      "id": "ml-intro",
+      "title": "Introduction to machine learning",
+      "summary": "The map of learning paradigms and the workflow and concepts shared by every model.",
+      "items": [
+        "Supervised, unsupervised, semi-supervised, self-supervised, reinforcement learning",
+        "Regression vs classification vs clustering vs dimensionality reduction",
+        "Parametric vs non-parametric, generative vs discriminative models",
+        "Loss functions and empirical risk",
+        "Overfitting, underfitting, bias-variance trade-off",
+        "Regularisation, validation, the full ML workflow",
+        "No free lunch and inductive bias"
+      ],
+      "questions": [
+        "Why can training error be a poor estimate of generalisation?",
+        "Generative vs discriminative: when does each win?"
+      ],
+      "resources": ["Stanford CS229 lecture notes", "An Introduction to Statistical Learning (ISLR)"]
+    },
+    {
+      "id": "regression",
+      "title": "Regression algorithms",
+      "summary": "From OLS to Gaussian processes and gradient-boosted regressors.",
+      "items": [
+        "Linear regression: normal equations, assumptions, diagnostics, R-squared",
+        "Polynomial regression and the degree/bias-variance dial",
+        "Ridge, Lasso, Elastic Net: geometry, closed form, coordinate descent",
+        "Bayesian linear regression: posterior and predictive distribution",
+        "Support Vector Regression and the epsilon-insensitive loss",
+        "Gaussian Process regression: kernels, marginal likelihood",
+        "KNN regression, decision-tree regression",
+        "Random Forest regression, Gradient Boosting, XGBoost, LightGBM, CatBoost regression",
+        "Multicollinearity (VIF), heteroscedasticity, robust and quantile regression"
+      ],
+      "questions": [
+        "Why does lasso give sparse solutions?",
+        "Derive the OLS estimator.",
+        "Why can't trees extrapolate?"
+      ],
+      "resources": ["ESL (Hastie et al.) chapters 3-4", "Rasmussen & Williams: Gaussian Processes for ML"]
+    },
+    {
+      "id": "classification",
+      "title": "Classification algorithms",
+      "summary": "Linear, probabilistic, margin-based and tree-based classifiers.",
+      "items": [
+        "Logistic regression: sigmoid, cross-entropy, regularisation, odds ratios",
+        "K-Nearest Neighbours: distance metrics, curse of dimensionality",
+        "Support Vector Machines: margin, soft margin, dual, kernels",
+        "Naive Bayes: Gaussian, Multinomial, Bernoulli, smoothing",
+        "LDA and QDA",
+        "Decision trees: ID3, C4.5, CART, pruning",
+        "Random Forest, Extra Trees, AdaBoost, Gradient Boosting, XGBoost, LightGBM, CatBoost",
+        "Perceptron and MLP basics, Gaussian-process classification",
+        "Multi-class (OvR, OvO, softmax) and multi-label strategies"
+      ],
+      "questions": [
+        "LDA vs logistic regression?",
+        "Why does the SVM dual depend only on inner products?",
+        "Entropy vs Gini impurity?"
+      ],
+      "resources": ["CS229 notes on SVMs and generative learning", "Scikit-learn supervised learning guide"]
+    },
+    {
+      "id": "clustering",
+      "title": "Clustering",
+      "summary": "Partitioning, density, hierarchical, model-based, spectral and neural clustering.",
+      "items": [
+        "K-Means and k-means++, K-Medoids",
+        "Hierarchical clustering: linkages, dendrograms, cophenetic correlation",
+        "DBSCAN, HDBSCAN, OPTICS",
+        "Mean Shift, Spectral clustering",
+        "Gaussian Mixture Models and EM",
+        "Fuzzy C-Means, Self-Organising Maps",
+        "Choosing k: elbow, silhouette, gap, BIC",
+        "Cluster stability and validation"
+      ],
+      "questions": [
+        "K-Means vs GMM?",
+        "How does DBSCAN define noise and what are its failure cases?"
+      ],
+      "resources": ["Scikit-learn clustering guide", "HDBSCAN documentation"]
+    },
+    {
+      "id": "dim-reduction-assoc",
+      "title": "Dimensionality reduction and association rules",
+      "summary": "Compress, visualise and mine co-occurrence patterns.",
+      "items": [
+        "PCA (eigendecomposition and SVD views), explained variance",
+        "SVD / truncated SVD (LSA), NMF",
+        "LDA (Fisher), ICA, Factor Analysis",
+        "Kernel PCA",
+        "MDS, Isomap, LLE",
+        "t-SNE and UMAP: how to read them, pitfalls",
+        "Autoencoders for dimension reduction",
+        "Association rules: support, confidence, lift, conviction",
+        "Apriori, FP-Growth, Eclat",
+        "Anomaly detection: Isolation Forest, LOF, One-Class SVM"
+      ],
+      "questions": [
+        "Why must PCA data be centred and (usually) standardised?",
+        "What does t-SNE preserve and what does it distort?",
+        "Why is confidence alone misleading for association rules?"
+      ],
+      "resources": ["ESL chapter 14", "How to Use t-SNE Effectively (Distill)"]
+    },
+    {
+      "id": "ensembles-theory",
+      "title": "Ensembles, learning theory and hyper-parameter optimisation",
+      "summary": "Combine models, understand generalisation, and tune systematically.",
+      "items": [
+        "Bagging, Random Forest, boosting, voting, stacking, blending",
+        "Gradient boosting math; XGBoost vs LightGBM vs CatBoost",
+        "ERM and SRM; approximation vs estimation error",
+        "VC dimension, PAC learning, Rademacher complexity",
+        "Bias-variance decomposition; learning and validation curves",
+        "Cross-validation variants: K-fold, stratified, LOO, repeated, group, time-series, nested",
+        "Grid search, random search, Bayesian optimisation (TPE, GP), Hyperband, evolutionary search",
+        "Optuna workflow, early stopping and pruning"
+      ],
+      "questions": [
+        "Why does bagging reduce variance but boosting reduce bias?",
+        "State the VC bound and its implication.",
+        "Why does random search beat grid search?"
+      ],
+      "resources": ["Understanding Machine Learning (Shalev-Shwartz & Ben-David)", "Optuna documentation"]
+    },
+    {
+      "id": "metrics",
+      "title": "Evaluation metrics",
+      "summary": "Classification, regression and clustering metrics, with the right choice and reporting.",
+      "items": [
+        "Confusion matrix, accuracy, precision, recall, specificity, F1, F-beta",
+        "ROC curve, AUC, precision-recall curve, average precision",
+        "MCC, Cohen's kappa, balanced accuracy, G-mean, log loss, Brier score",
+        "Macro, micro and weighted averaging; multi-label metrics",
+        "Calibration: reliability diagram, ECE, Platt, isotonic",
+        "MAE, MSE, RMSE, MAPE, sMAPE, MASE, R-squared, adjusted R-squared",
+        "Silhouette, Davies-Bouldin, Calinski-Harabasz, ARI, NMI",
+        "Choosing a metric by cost; threshold selection on validation data"
+      ],
+      "questions": [
+        "When is PR-AUC more informative than ROC-AUC?",
+        "Why is MAPE problematic?",
+        "What is the Adjusted Rand Index correcting for?"
+      ],
+      "resources": ["Scikit-learn model evaluation guide", "The Precision-Recall Plot Is More Informative than the ROC Plot (Saito & Rehmsmeier)"]
+    }
+  ]
+}

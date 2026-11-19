@@ -1,0 +1,285 @@
+[
+ {
+  "id": "cml-discriminant-nb",
+  "phase": "classical-ml",
+  "group": "3 · Classification models",
+  "title": "Generative classifiers: LDA, QDA and Naive Bayes (Gaussian, Multinomial, Bernoulli)",
+  "tagline": "Model $p(x|y)$ and apply Bayes' rule - closed-form, fast, and strong on small data.",
+  "viz": "kl-lab",
+  "explain": "**Generative vs discriminative.** A discriminative model learns $p(y|x)$ directly (logistic regression, SVM, trees). A generative model learns $p(x|y)p(y)$ and classifies with Bayes: $\\hat y=\\arg\\max_y\\,p(x|y)p(y)$. Generative models need fewer samples to reach their (higher) asymptotic error, handle missing features and can generate data; discriminative models win with lots of data.\n\n**LDA (Linear Discriminant Analysis).** Assume $x|y=k\\sim\\mathcal N(\\mu_k,\\Sigma)$ with a **shared** covariance. The log-posterior difference is linear in $x$:\n$$\\delta_k(x)=x^\\top\\Sigma^{-1}\\mu_k-\\tfrac12\\mu_k^\\top\\Sigma^{-1}\\mu_k+\\log\\pi_k.$$\nDecision boundaries are hyperplanes. LDA is also a **supervised dimensionality reducer**: project onto at most $K-1$ directions that maximise between-class scatter over within-class scatter (Fisher's criterion $\\max_w\\frac{w^\\top S_Bw}{w^\\top S_Ww}$). Shrinkage ($\\Sigma\\leftarrow(1-\\alpha)\\Sigma+\\alpha I$, Ledoit-Wolf) stabilises it when $p\\approx n$.\n\n**QDA.** Each class has its own $\\Sigma_k$ ⇒ **quadratic** boundaries; more flexible, needs $K\\cdot p(p+1)/2$ covariance parameters, so it overfits in high dimension. Regularised discriminant analysis interpolates between LDA and QDA.\n\n**Naive Bayes.** Assume features are conditionally independent given the class: $p(x|y)=\\prod_jp(x_j|y)$. This collapses a huge joint into $p$ one-dimensional estimates, so it trains in one pass, scales to millions of features and works with tiny data. Variants differ in $p(x_j|y)$:\n- **Gaussian NB**: $x_j|y\\sim\\mathcal N(\\mu_{jy},\\sigma_{jy}^2)$ for continuous features.\n- **Multinomial NB**: word counts, $p(x|y)\\propto\\prod_jp_{jy}^{x_j}$ - the text classic with **Laplace smoothing** $p_{jy}=\\frac{n_{jy}+\\alpha}{n_y+\\alpha V}$ so unseen words don't zero the product.\n- **Bernoulli NB**: binary presence/absence features (explicitly penalises absent words).\n- **Complement NB**: better for imbalanced text.\n\nWork in log space: $\\log p(y)+\\sum_j\\log p(x_j|y)$ to avoid underflow. The independence assumption is usually wrong, so probabilities are **badly calibrated** (over-confident) though the argmax is often right; recalibrate (Platt/isotonic) when you need probabilities.\n\n**When**: spam filtering, document classification, quick baselines, streaming/online learning (incremental counts), very small datasets. LDA when classes are roughly Gaussian with similar spread.",
+  "tradeoffs": [
+   "Extremely fast and data-efficient, but the model assumptions are rigid.",
+   "Naive Bayes is a high-bias/low-variance classifier: great with little data, plateaus with a lot."
+  ],
+  "pitfalls": [
+   "Zero-frequency problem without smoothing.",
+   "Interpreting NB probabilities literally.",
+   "Using Gaussian NB on skewed features without transformation.",
+   "QDA when $n<p$ (singular covariances)."
+  ],
+  "interview": [
+   "Why does Naive Bayes work despite a false independence assumption?",
+   "LDA vs logistic regression?",
+   "Why Laplace smoothing?"
+  ],
+  "use": [
+   "Text classification baselines, tiny datasets, online learning, quick benchmarks."
+  ],
+  "avoid": [
+   "Do not feed highly correlated duplicate features to NB; they are double-counted."
+  ],
+  "qa": [
+   {
+    "q": "Show LDA's boundary is linear.",
+    "a": "With shared $\\Sigma$, $\\log\\frac{p(k|x)}{p(l|x)}=\\log\\frac{\\pi_k}{\\pi_l}-\\tfrac12(\\mu_k+\\mu_l)^\\top\\Sigma^{-1}(\\mu_k-\\mu_l)+x^\\top\\Sigma^{-1}(\\mu_k-\\mu_l)$; the quadratic terms in $x$ cancel because $\\Sigma$ is common, leaving a linear function of $x$."
+   }
+  ]
+ },
+ {
+  "id": "cml-svm-kernels",
+  "phase": "classical-ml",
+  "group": "3 · Classification models",
+  "title": "Support Vector Machines in depth: margin, dual, kernels, soft margin, multi-class",
+  "tagline": "Max-margin classification, the dual problem that exposes support vectors, and the kernel trick.",
+  "viz": "svm-lab",
+  "explain": "**Hard margin.** For separable data find the hyperplane $w^\\top x+b=0$ maximising the margin $2/\\|w\\|$: $\\min\\tfrac12\\|w\\|^2$ s.t. $y_i(w^\\top x_i+b)\\ge1$. Only the points on the margin - **support vectors** - determine the solution; deleting any other point changes nothing.\n\n**Soft margin.** Allow violations with slacks $\\xi_i\\ge0$: $\\min\\tfrac12\\|w\\|^2+C\\sum\\xi_i$ s.t. $y_i(w^\\top x_i+b)\\ge1-\\xi_i$. Equivalent to the **hinge loss** $\\max(0,1-y_if(x_i))$ + L2 penalty. Large $C$ ⇒ narrow margin, fewer violations (high variance); small $C$ ⇒ wide margin, more tolerance (high bias).\n\n**Dual (via Lagrangian/KKT).** $\\max_\\alpha\\sum\\alpha_i-\\tfrac12\\sum_{ij}\\alpha_i\\alpha_jy_iy_j\\,x_i^\\top x_j$ s.t. $0\\le\\alpha_i\\le C$, $\\sum\\alpha_iy_i=0$; $w=\\sum\\alpha_iy_ix_i$. Complementary slackness: $\\alpha_i=0$ (outside margin), $0<\\alpha_i<C$ (on margin), $\\alpha_i=C$ (inside/misclassified). The data enter **only through inner products**, which is what allows kernels.\n\n**Kernel trick.** Replace $x_i^\\top x_j$ with $k(x_i,x_j)=\\phi(x_i)^\\top\\phi(x_j)$ without computing $\\phi$: **linear**, **polynomial** $(\\gamma x^\\top x'+r)^d$, **RBF** $\\exp(-\\gamma\\|x-x'\\|^2)$ (infinite-dimensional feature space), **sigmoid**, string/graph kernels. **Mercer**: valid kernels have PSD Gram matrices; closure under sums and products lets you build new ones. Decision function $f(x)=\\sum\\alpha_iy_ik(x_i,x)+b$.\n\n**Tuning RBF-SVM**: grid over $\\log C$ and $\\log\\gamma$ (cross-validated). Large $\\gamma$ → narrow bumps → overfit; small $\\gamma$ → near-linear. **Always scale features.**\n\n**Extensions**: multi-class via one-vs-rest / one-vs-one; **probabilities** via Platt scaling (extra CV); SVR; one-class SVM (novelty detection); $\\nu$-SVM; LinearSVC / SGD for large data ($O(n)$ vs $O(n^2$-$n^3)$ for kernel SVMs); structured SVMs.\n\n**SVM vs logistic regression**: similar linear boundary, different loss (hinge vs log); hinge gives sparse solutions and margin, log loss gives calibrated probabilities.",
+  "tradeoffs": [
+   "Strong on medium-size, high-dimensional data; poor scaling with $n$ and no native probabilities.",
+   "RBF kernels are flexible but need careful $C,\\gamma$ tuning."
+  ],
+  "pitfalls": [
+   "Unscaled features.",
+   "Using kernel SVM on millions of rows.",
+   "Treating decision-function values as probabilities."
+  ],
+  "interview": [
+   "Why does the dual depend only on inner products?",
+   "What is $C$'s role?",
+   "What does a valid kernel require?"
+  ],
+  "use": [
+   "Text with TF-IDF (linear SVM), small/medium biology or chemistry datasets, anomaly detection (one-class)."
+  ],
+  "avoid": [
+   "Avoid kernel SVMs when $n>10^5$; use linear models or boosting."
+  ],
+  "qa": [
+   {
+    "q": "Why are only support vectors important?",
+    "a": "KKT complementary slackness forces $\\alpha_i=0$ for any point strictly outside the margin, so those points contribute nothing to $w=\\sum\\alpha_iy_ix_i$."
+   }
+  ]
+ },
+ {
+  "id": "cml-perceptron-trees",
+  "phase": "classical-ml",
+  "group": "3 · Classification models",
+  "title": "Perceptron, decision trees (ID3/C4.5/CART), Random Forest, Extra Trees and AdaBoost classifiers",
+  "tagline": "From the first learning rule to the tree ensembles that dominate tabular data.",
+  "viz": "boost-lab",
+  "explain": "**Perceptron.** $\\hat y=\\mathrm{sign}(w^\\top x+b)$; update on a mistake $w\\leftarrow w+\\eta\\,y_ix_i$. **Convergence theorem**: if the data are linearly separable with margin $\\gamma$ and $\\|x\\|\\le R$, it makes at most $(R/\\gamma)^2$ mistakes. It cannot learn XOR (single layer) - motivating multilayer networks. Averaged/voted perceptron and its kernel version are practical online learners.\n\n**Decision trees.** Greedy recursive partitioning. At each node choose the split maximising **impurity reduction**: **entropy/information gain** (ID3, C4.5 uses gain *ratio* to avoid favouring many-valued attributes), **Gini** $1-\\sum p_k^2$ (CART), or variance for regression. CART builds binary trees, handles numeric thresholds, supports surrogate splits for missing values. Control overfitting by max depth, min samples per leaf, **cost-complexity pruning** (minimise $R(T)+\\alpha|T|$). Pros: interpretable, no scaling, mixed types, interactions. Cons: unstable (high variance), axis-aligned boundaries, biased toward high-cardinality features.\n\n**Random Forest.** Bagging + random feature subsets at each split ($\\sqrt p$ for classification) decorrelates trees; prediction by majority vote/probability average. **OOB score** estimates generalisation for free; importances by impurity decrease (biased) or **permutation** (better). Hyper-parameters: number of trees, `max_features`, `min_samples_leaf`. Hard to overfit by adding trees.\n\n**Extra Trees (Extremely Randomised).** Like RF but thresholds are drawn **at random** per feature and the best of those is taken, and bootstrap is usually off. More variance reduction, faster, sometimes smoother boundaries.\n\n**AdaBoost.** Sequentially reweight samples: train a weak learner (stump) on weights $w_i$, error $\\epsilon_t$, learner weight $\\alpha_t=\\tfrac12\\ln\\frac{1-\\epsilon_t}{\\epsilon_t}$, update $w_i\\leftarrow w_i\\exp(-\\alpha_ty_ih_t(x_i))$ and renormalise. Final $H(x)=\\mathrm{sign}\\sum\\alpha_th_t(x)$. It minimises the **exponential loss**, boosts the margin, is sensitive to label noise/outliers (see the AdaBoost lab).\n\n**Gaussian-process classification** and **MLPs** complete the family of flexible classifiers (see the advanced-ML and deep-learning phases).\n\n**Heuristic for tabular data**: logistic baseline → random forest → gradient-boosted trees; compare with cross-validation.",
+  "tradeoffs": [
+   "Single trees are interpretable but unstable; forests trade interpretability for accuracy.",
+   "AdaBoost is simple but noise-sensitive; gradient boosting is more flexible."
+  ],
+  "pitfalls": [
+   "Deep unpruned single trees.",
+   "Trusting impurity importances with high-cardinality features.",
+   "Perceptron on non-separable data (never converges)."
+  ],
+  "interview": [
+   "Entropy vs Gini?",
+   "Why does bagging reduce variance?",
+   "How does AdaBoost reweight examples?"
+  ],
+  "use": [
+   "Tabular classification with mixed types, quick strong baselines."
+  ],
+  "avoid": [
+   "Do not use a single deep tree in production without pruning/ensembling."
+  ],
+  "qa": [
+   {
+    "q": "Why does a random forest decorrelate its trees?",
+    "a": "Averaging $B$ trees with pairwise correlation $\\rho$ has variance $\\rho\\sigma^2+\\frac{1-\\rho}{B}\\sigma^2$. Random feature subsets at each split lower $\\rho$, so the irreducible first term shrinks."
+   }
+  ]
+ },
+ {
+  "id": "cml-clustering-zoo",
+  "phase": "classical-ml",
+  "group": "4 · Unsupervised learning",
+  "title": "Clustering algorithms: K-Means, K-Medoids, DBSCAN, HDBSCAN, OPTICS, Mean Shift, Spectral, GMM, Fuzzy C-Means, SOM",
+  "tagline": "Ten clustering families, the assumption each makes, and how to pick one.",
+  "viz": "kmeans-lab",
+  "explain": "Clustering groups unlabelled points so that within-cluster similarity is high. Algorithms differ in what a \"cluster\" means.\n\n**Centroid-based**\n- **K-Means** minimises within-cluster sum of squares by alternating assign/update (Lloyd). Assumes convex, similar-size spherical clusters; sensitive to initialisation (use **k-means++**), outliers and scale. Choose $k$ by the elbow, silhouette, gap statistic.\n- **K-Medoids (PAM, CLARA)**: centres are real data points, minimise any dissimilarity - robust to outliers, works with arbitrary distances, $O(k(n-k)^2)$.\n- **Fuzzy C-Means**: soft memberships $u_{ik}\\in[0,1]$, $\\sum_ku_{ik}=1$, with fuzzifier $m>1$; alternates centre and membership updates.\n- **Mean Shift**: move each point to the local mean within bandwidth $h$ until convergence = mode seeking on a kernel density estimate; number of clusters is automatic; cost $O(n^2)$.\n\n**Density-based**\n- **DBSCAN**: core points have $\\ge$ MinPts neighbours within $\\varepsilon$; clusters are density-connected cores plus border points; the rest is noise. Finds arbitrary shapes, labels outliers, no $k$; fails with varying density and is sensitive to $\\varepsilon$ (use k-distance plot).\n- **OPTICS**: orders points by reachability distance producing a *reachability plot* from which clusterings at many $\\varepsilon$ can be extracted.\n- **HDBSCAN**: hierarchical DBSCAN with a stability criterion; handles variable density, only needs minimum cluster size - the modern default for density clustering.\n\n**Model-based**: **Gaussian Mixture Models** fitted by EM give soft clusters with elliptical shapes; choose components by BIC/AIC. (EM derivation in the advanced-ML phase.)\n\n**Graph-based**: **Spectral clustering** builds an affinity graph, computes the Laplacian $L=D-W$ (or normalised), embeds points using the $k$ smallest eigenvectors and runs K-Means there; finds non-convex clusters, costs $O(n^3)$ without approximation.\n\n**Neural**: **Self-Organising Map (SOM)** - a grid of prototype neurons; for each input find the best-matching unit and pull it and its grid neighbours toward the input (learning rate and neighbourhood radius decay); yields a topology-preserving 2-D map for visualisation. Deep clustering (DEC, SwAV) learns features and assignments jointly.\n\n**Hierarchical** is covered next; **evaluation** (silhouette, Davies-Bouldin, ARI, NMI) is in the metrics section.\n\n**Picking**: spherical blobs & large $n$ → K-Means/MiniBatch; arbitrary shapes + noise → DBSCAN/HDBSCAN; overlapping/probabilistic → GMM; graph/manifold structure → spectral; mixed/categorical data → K-Medoids with Gower distance (or K-Modes); need a dendrogram → hierarchical.",
+  "tradeoffs": [
+   "Partitioning methods need $k$; density methods need $\\varepsilon$/min size; no method is universally right.",
+   "Soft assignments (GMM, fuzzy) express ambiguity at higher cost."
+  ],
+  "pitfalls": [
+   "Clustering unscaled features.",
+   "Reading structure into t-SNE pictures.",
+   "Using K-Means on non-convex data.",
+   "No stability check across seeds/subsamples."
+  ],
+  "interview": [
+   "K-Means vs GMM?",
+   "How does DBSCAN define noise?",
+   "Why k-means++?"
+  ],
+  "use": [
+   "Segmentation, anomaly pre-screening, prototype discovery, data exploration."
+  ],
+  "avoid": [
+   "Do not trust cluster counts without internal validity indices and domain sense."
+  ],
+  "qa": [
+   {
+    "q": "Is K-Means guaranteed to find the global optimum?",
+    "a": "No. Each step decreases the objective monotonically so it converges, but only to a local optimum that depends on initialisation; run multiple restarts or k-means++."
+   }
+  ]
+ },
+ {
+  "id": "cml-hierarchical",
+  "phase": "classical-ml",
+  "group": "4 · Unsupervised learning",
+  "title": "Hierarchical clustering: agglomerative linkage, dendrograms, cutting and cophenetic correlation",
+  "tagline": "Build the whole tree of merges and choose the cut afterwards.",
+  "viz": "hier-lab",
+  "explain": "**Agglomerative (bottom-up).** Start with each point as a cluster; repeatedly merge the two *closest* clusters until one remains. Result: a **dendrogram** whose vertical axis is merge distance. **Divisive** (top-down, DIANA) splits recursively and is rarer.\n\n**Linkage** defines cluster distance:\n- **Single**: min pairwise distance - chaining effect, finds elongated shapes, noise-sensitive.\n- **Complete**: max pairwise distance - compact clusters of similar diameter.\n- **Average (UPGMA)**: mean pairwise distance - compromise.\n- **Ward**: merge the pair that minimally increases total within-cluster variance - behaves like K-Means, usually best default for Euclidean data.\n- Centroid/median linkages can produce inversions.\n\n**Cutting the tree.** Choose a distance threshold or number of clusters $k$ (cut where there is a large gap between successive merge heights). **Cophenetic correlation** compares dendrogram distances to original distances to judge fidelity. Heat-map + dendrogram (clustermap) is standard for gene expression.\n\n**Complexity**: naive $O(n^3)$ time, $O(n^2)$ memory; efficient algorithms $O(n^2\\log n)$. Not for millions of points - use BIRCH or sample first.\n\n**Strengths**: no need to pre-specify $k$, deterministic, any distance (Euclidean, correlation, Gower, edit distance), reveals nested structure. **Weaknesses**: greedy merges are irreversible; scale-sensitive; memory-heavy.",
+  "tradeoffs": [
+   "Full hierarchy for free vs quadratic memory.",
+   "Linkage choice changes cluster shape drastically."
+  ],
+  "pitfalls": [
+   "Single linkage chaining.",
+   "Not scaling features.",
+   "Interpreting horizontal order of leaves as meaningful."
+  ],
+  "interview": [
+   "Single vs complete vs Ward?",
+   "How do you pick the cut height?",
+   "Complexity of agglomerative clustering?"
+  ],
+  "use": [
+   "Taxonomies, gene expression, document hierarchies, small/medium datasets."
+  ],
+  "avoid": [
+   "Do not run on $10^6$ points directly."
+  ],
+  "qa": [
+   {
+    "q": "Why does single linkage chain?",
+    "a": "It joins clusters if any two points are close, so a thin bridge of noise points connects distant groups into one long chain."
+   }
+  ]
+ },
+ {
+  "id": "cml-dimred-linear",
+  "phase": "classical-ml",
+  "group": "4 · Unsupervised learning",
+  "title": "Dimensionality reduction (linear): PCA, SVD, LDA, ICA, Factor Analysis, Kernel PCA",
+  "tagline": "Compress features while keeping variance, class separation or independence - and know which to use.",
+  "viz": "pca-lab",
+  "explain": "**Why reduce?** Curse of dimensionality (distances concentrate, data sparse), noise removal, speed, visualisation, multicollinearity, storage.\n\n**PCA.** Centre $X$; the covariance $C=\\frac1{n-1}X^\\top X$ has eigenpairs $(\\lambda_i,v_i)$; the principal components are the eigenvectors, scores $Z=XV_k$. Equivalent: maximise projected variance, or minimise reconstruction error $\\|X-ZV_k^\\top\\|_F^2$. Explained-variance ratio $\\lambda_i/\\sum\\lambda$; keep components for 90-99% variance or at the scree-plot elbow. **Compute via SVD**: $X=U\\Sigma V^\\top$, $\\lambda_i=\\sigma_i^2/(n-1)$, scores $=U\\Sigma$. **Standardise** first unless features share units. Whitening divides components by $\\sqrt{\\lambda_i}$. Limits: linear, variance≠relevance, sensitive to outliers (robust PCA, sparse PCA exist). **Incremental / randomised PCA** for big data.\n\n**SVD / Truncated SVD (LSA).** Works on sparse matrices without centring: the best rank-$k$ approximation (Eckart-Young). Latent semantic analysis of TF-IDF, recommender factors.\n\n**LDA (supervised).** Project to $\\le K-1$ dimensions maximising class separability (Fisher); beats PCA when labels exist and classes are Gaussian-like. Distinguish from *Latent Dirichlet Allocation* (a topic model).\n\n**ICA (Independent Component Analysis).** Finds a linear unmixing $s=Wx$ whose components are **statistically independent** and non-Gaussian (maximise non-Gaussianity: kurtosis/negentropy; FastICA). Solves **blind source separation** (the cocktail-party problem, EEG artefact removal). PCA only decorrelates; ICA enforces independence.\n\n**Factor Analysis.** Latent-variable model $x=\\mu+Wz+\\epsilon$, $z\\sim\\mathcal N(0,I)$, with **per-feature noise** $\\Psi$ (PCA has isotropic noise in probabilistic PCA). Used in psychometrics to explain correlations via few latent factors; rotation (varimax) for interpretability; tests KMO/Bartlett.\n\n**Kernel PCA.** PCA in feature space through the kernel matrix $K$ (centred): eigenvectors of $K$ give non-linear components (RBF captures concentric circles). Needs the $n\\times n$ matrix; pre-image problem for reconstruction.\n\n**Others**: NMF (non-negative parts), sparse PCA, random projections (Johnson-Lindenstrauss), autoencoders (non-linear, learned).",
+  "tradeoffs": [
+   "PCA is fast and deterministic but linear; kernel/manifold methods capture curvature at higher cost.",
+   "Fewer components reduce noise but may discard weak but predictive directions."
+  ],
+  "pitfalls": [
+   "Not centring/standardising.",
+   "Fitting PCA on train+test.",
+   "Assuming high-variance components are the most predictive.",
+   "Interpreting rotated factors causally."
+  ],
+  "interview": [
+   "Derive PCA from the covariance matrix.",
+   "PCA vs LDA vs ICA?",
+   "How are PCA and SVD related?"
+  ],
+  "use": [
+   "Preprocessing for KNN/SVM/clustering, visualisation, denoising, multicollinearity removal, signal separation."
+  ],
+  "avoid": [
+   "Do not use PCA components when interpretability of original features is required."
+  ],
+  "qa": [
+   {
+    "q": "Why are principal components orthogonal?",
+    "a": "They are eigenvectors of the symmetric covariance matrix; the spectral theorem guarantees an orthonormal eigenbasis for a symmetric matrix."
+   }
+  ]
+ },
+ {
+  "id": "cml-dimred-manifold",
+  "phase": "classical-ml",
+  "group": "4 · Unsupervised learning",
+  "title": "Manifold learning and visualisation: MDS, Isomap, LLE, t-SNE, UMAP",
+  "tagline": "Non-linear embeddings: what each preserves and how to read (and not misread) the plots.",
+  "viz": "pca-lab",
+  "explain": "**Manifold hypothesis**: high-dimensional data lie near a low-dimensional manifold (faces vary by pose/lighting, a few degrees of freedom). Manifold learners recover the coordinates.\n\n- **MDS (Multidimensional Scaling)**: find low-dimensional points whose pairwise distances match the original distances (minimise **stress** $\\sum(d_{ij}-\\hat d_{ij})^2$); classical MDS = PCA on a double-centred distance matrix; non-metric MDS preserves ranks.\n- **Isomap**: build a $k$-NN graph, compute **geodesic** (shortest-path) distances along it, then apply MDS. Unrolls the Swiss roll; fails with holes or noise shortcuts.\n- **LLE (Locally Linear Embedding)**: express each point as a weighted combination of its neighbours (weights from local least squares), then find low-dimensional points preserving those same weights (eigenproblem). Preserves local geometry.\n- **Laplacian eigenmaps / spectral embedding**: eigenvectors of the graph Laplacian.\n- **t-SNE**: converts distances to neighbour probabilities $p_{j|i}\\propto\\exp(-\\|x_i-x_j\\|^2/2\\sigma_i^2)$ (bandwidth set by **perplexity**), uses a heavy-tailed Student-t kernel $q_{ij}\\propto(1+\\|y_i-y_j\\|^2)^{-1}$ in 2-D and minimises $KL(P\\|Q)$ by gradient descent. Heavy tails fix the crowding problem. Excellent local structure; **global distances, cluster sizes and inter-cluster gaps are not meaningful**; stochastic, perplexity-dependent (5-50), $O(n\\log n)$ with Barnes-Hut.\n- **UMAP**: builds a fuzzy simplicial-set graph (local connectivity with a $k$-NN radius) and optimises a cross-entropy to a low-dimensional graph; faster than t-SNE, preserves more global structure, supports supervised and transform-new-data modes; key parameters `n_neighbors`, `min_dist`.\n- **Autoencoders / VAEs** give parametric non-linear embeddings.\n\n**How to use responsibly**: standardise, optionally PCA to 30-50 dims first, run with several seeds/perplexities, *never* cluster on t-SNE coordinates or read distances literally; use for exploring, then verify in the original space.",
+  "tradeoffs": [
+   "t-SNE: gorgeous local structure, no out-of-sample transform; UMAP: faster, transformable, more global.",
+   "Isomap/LLE are elegant but brittle on noisy real data."
+  ],
+  "pitfalls": [
+   "Over-interpreting cluster separation or size in t-SNE/UMAP.",
+   "Using default perplexity on tiny sets.",
+   "Embedding then clustering as if distances were faithful."
+  ],
+  "interview": [
+   "Why does t-SNE use a Student-t distribution?",
+   "t-SNE vs UMAP?",
+   "What does Isomap preserve?"
+  ],
+  "use": [
+   "Visualising embeddings (word, cell, image), data exploration, sanity checks."
+  ],
+  "avoid": [
+   "Do not use t-SNE output as model features without care."
+  ],
+  "qa": [
+   {
+    "q": "What is the crowding problem?",
+    "a": "In low dimension there is too little volume to place all moderately-distant neighbours at proper distances, so they get crushed together. A heavy-tailed kernel lets moderately distant points sit far apart in the map, relieving crowding."
+   }
+  ]
+ },
+ {
+  "id": "cml-assoc-anomaly",
+  "phase": "classical-ml",
+  "group": "4 · Unsupervised learning",
+  "title": "Association rules (Apriori, FP-Growth, Eclat) and anomaly detection (Isolation Forest, LOF, One-Class SVM)",
+  "tagline": "Market-basket mining and finding the rare/different points.",
+  "viz": "assoc-lab",
+  "explain": "**Association rule mining.** Transactions are item sets; find rules $A\\Rightarrow B$. Measures: **support** $P(A\\cup B)$, **confidence** $P(B|A)$, **lift** $\\frac{P(A\\cup B)}{P(A)P(B)}$ (>1 positive association), **leverage**, **conviction** $\\frac{1-P(B)}{1-\\text{conf}}$. Frequent itemsets satisfy a minimum support; rules a minimum confidence/lift.\n\n- **Apriori**: uses the **downward-closure (anti-monotone) property** - every subset of a frequent itemset is frequent - so candidates of size $k$ are generated from frequent $(k-1)$-sets and pruned. Multiple database scans; candidate explosion at low support.\n- **FP-Growth**: compresses the database into an **FP-tree** (prefix tree ordered by item frequency) and mines it recursively via conditional pattern bases; no candidate generation, two scans - usually much faster.\n- **Eclat**: vertical layout, each item → set of transaction IDs; support of an itemset is the size of the **intersection** of tid-lists; depth-first.\n- Extensions: sequential patterns (PrefixSpan, GSP), quantitative/multi-level rules, rule pruning by closed/maximal itemsets.\n\nUses: retail baskets, recommender \"frequently bought together\", web-usage mining, medical co-occurrence. Pitfall: spurious rules - always check lift and use held-out transactions.\n\n**Anomaly / outlier detection.**\n- **Statistical**: z-score, Mahalanobis, GMM density.\n- **Isolation Forest**: anomalies are *few and different*, so random axis-splits isolate them in few steps; score $s=2^{-E[h(x)]/c(n)}$ (short average path ⇒ anomaly). Linear time, handles high dimension.\n- **LOF (Local Outlier Factor)**: compare a point's local density to its neighbours'; ratio ≫1 ⇒ outlier; handles variable density.\n- **One-Class SVM**: learn a boundary around normal data (ν controls the outlier fraction).\n- **DBSCAN noise**, **autoencoder reconstruction error**, **Deep SVDD**, isolation + SHAP for explanation.\nEvaluate with PR-AUC/precision@k on labelled anomalies; set the threshold from the expected contamination.",
+  "tradeoffs": [
+   "Rule mining gives readable patterns but explodes at low support.",
+   "Isolation Forest is fast but distance-agnostic; LOF is local but $O(n^2)$."
+  ],
+  "pitfalls": [
+   "High confidence but lift ≈ 1 (item is just popular).",
+   "Support threshold too low → millions of rules.",
+   "Anomaly detectors trained on contaminated 'normal' data."
+  ],
+  "interview": [
+   "What is the Apriori property?",
+   "FP-Growth vs Apriori?",
+   "Why does Isolation Forest isolate anomalies quickly?"
+  ],
+  "use": [
+   "Basket analysis, cross-sell, fraud/defect detection, monitoring."
+  ],
+  "avoid": [
+   "Do not interpret association as causation."
+  ],
+  "qa": [
+   {
+    "q": "Confidence 90% but lift 1: what does that tell you?",
+    "a": "B occurs 90% of the time anyway, so A tells you nothing about B; the rule is uninformative despite high confidence."
+   }
+  ]
+ }
+]

@@ -1,0 +1,327 @@
+[
+ {
+  "id": "dl-pretraining",
+  "phase": "deep-learning",
+  "group": "6 · Training at scale",
+  "title": "Pre-training: objectives, data pipelines, curricula and synthetic data",
+  "tagline": "Most of a model's capability comes from data quality and mixture - learn how corpora are built and audited.",
+  "viz": null,
+  "explain": "**Objectives**: causal LM (next-token), masked LM, span corruption (T5), prefix LM, fill-in-the-middle (code), multi-token prediction, auxiliary losses (router balance, z-loss). Loss per token averaged over non-pad tokens; report bits-per-byte for cross-tokeniser comparison.\n\n**Data pipeline (what papers describe)**\n1. **Collect**: web crawl (Common Crawl), books, code (GitHub), papers, Wikipedia, curated/licensed, multilingual and domain data.\n2. **Extract & clean**: HTML → text (trafilatura), language ID (fastText), boilerplate removal, encoding fixes, PII scrubbing.\n3. **Quality filtering**: heuristics (length, symbol ratio, repetition - Gopher/C4 rules), perplexity filters (KenLM), and **model-based classifiers** (fastText/LLM scoring educational value, e.g. FineWeb-Edu, DCLM) - consistently the largest gain per effort.\n4. **Deduplication**: exact (hash), near-duplicate (**MinHash + LSH**, Jaccard threshold ≈0.8), substring dedup (suffix arrays); duplicates cause memorisation, inflate benchmarks and waste compute.\n5. **Decontamination**: remove n-gram overlaps with evaluation sets (13-gram) - but verify, contamination is the #1 threat to benchmark validity.\n6. **Mixture & sampling**: choose domain weights (web/code/math/books); up-sample high-quality data for multiple epochs (up to ~4 epochs of repeated data is nearly as good as fresh); DoReMi/RegMix optimise mixtures with small proxy models; **curriculum** and **annealing** (final phase on high-quality + instruction-like data) improve benchmarks.\n7. **Tokenise & pack**: concatenate documents with EOS and cut into fixed-length sequences; use document-masking (block-diagonal attention) to stop cross-document attention; shuffle deterministically with resumable state.\n\n**Synthetic data**: LLM-generated textbooks/reasoning traces (Phi), rephrasing web text, code with execution feedback, self-instruct for SFT. Risks: **model collapse** when recursively training on own outputs (tails vanish), bias amplification, benchmark leakage; mitigate with real-data anchoring, verification (execution/proof/unit tests) and diversity controls.\n\n**Legal/ethics**: licences, opt-outs (robots.txt), PII, copyright, consent; document with **datasheets** and data statements.\n\n**Ablation methodology**: train small proxy models (100M-1B) for each data decision; compare on held-out loss and a broad eval suite; effect sizes must exceed seed noise.\n\n**Multi-stage training**: pre-training → long-context extension → annealing → SFT → preference tuning; each stage has its own data, LR and sequence length. Track **loss per domain** and **eval checkpoints** during training.",
+  "tradeoffs": [
+   "Aggressive quality filtering improves benchmarks but reduces diversity and can bias toward certain registers/languages.",
+   "Repeating data is cheaper than collecting new data, up to a few epochs."
+  ],
+  "pitfalls": [
+   "Benchmark contamination making results incomparable.",
+   "Over-filtering low-resource languages.",
+   "Packing documents without masking (cross-document leakage).",
+   "Non-deterministic data order that cannot be resumed after a crash."
+  ],
+  "interview": [
+   "How would you build and clean a pre-training corpus?",
+   "Explain MinHash-LSH deduplication.",
+   "What is model collapse and how do you avoid it?"
+  ],
+  "use": [
+   "Writing the data section of a paper; designing a domain-specific pre-training corpus."
+  ],
+  "avoid": [
+   "Do not report benchmark scores without stating decontamination."
+  ],
+  "qa": [
+   {
+    "q": "Why does deduplication improve quality?",
+    "a": "Duplicates over-weight a few texts, causing memorisation (privacy and regurgitation risk), wasting compute on repeated tokens and inflating evaluation if test data appears in training. Deduped corpora give lower held-out loss at equal tokens."
+   }
+  ]
+ },
+ {
+  "id": "dl-scaling",
+  "phase": "deep-learning",
+  "group": "6 · Training at scale",
+  "title": "Scaling laws and compute accounting (6ND, Chinchilla, memory)",
+  "tagline": "Predict loss from compute, choose model/data size, and budget GPUs before you train.",
+  "viz": "trainmem-lab",
+  "explain": "**Empirical law** (Kaplan 2020): loss follows power laws in parameters $N$, data $D$ and compute $C$:\n\n```math\nL(N,D)=E+\\frac{A}{N^{\\alpha}}+\\frac{B}{D^{\\beta}},\\qquad \\alpha\\approx0.34,\\ \\beta\\approx0.28\\ (\\text{Hoffmann et al.}),\\qquad C\\approx6ND\n```\n\n**Chinchilla (compute-optimal)**: for a fixed budget $C$, scale $N$ and $D$ together: $N_{opt}\\propto C^{0.5}$, $D_{opt}\\propto C^{0.5}$, ≈ **20 tokens per parameter**. Earlier models (GPT-3: 175B on 300B tokens) were under-trained. **Inference-optimal** training goes beyond Chinchilla: if a model will serve billions of requests, train a *smaller* model on far more tokens (LLaMA-3 8B on 15T tokens ≈ 1,900 tokens/param) because total cost = training + inference.\n\n**Compute accounting**: training FLOPs $=6ND$; GPU-hours $=\\dfrac{6ND}{\\text{peak FLOPs}\\cdot\\text{MFU}}$ where **MFU** (model FLOPs utilisation) is typically 35-55% on well-tuned clusters. Example: 7B model × 2T tokens = $8.4\\times10^{22}$ FLOPs ≈ 270k A100-hours at 40% MFU. Use the calculator above.\n\n**Memory accounting (training, mixed precision + AdamW)**: weights 2 B + grads 2 B + fp32 master weights 4 B + Adam $m$ 4 B + $v$ 4 B = **16 bytes/param** before activations (7B → 112 GB). **Activations** scale with batch × sequence × layers × width; reduce with **gradient checkpointing** (recompute) and **FlashAttention**. **Inference**: weights (2 B/param bf16, 0.5 B at 4-bit) + KV cache.\n\n**Using scaling laws in research**: fit a power law on small runs (≥5 sizes, ≥1 decade), extrapolate with uncertainty, **hyper-parameter transfer** with μP (the optimal LR is width-independent under μP), predict benchmark ability from loss (downstream metrics are noisier and can look \"emergent\" because of non-linear metrics - Schaeffer et al.). Report: parameters (total and active), tokens, FLOPs, hardware, MFU and wall-clock.\n\n**Caveats**: laws hold for a fixed recipe/data; data quality shifts the constants; repeated data and the \"data wall\" change optimal allocation; test-time compute (reasoning models) adds a second axis: **performance scales with inference compute** (best-of-N, long chain-of-thought, search).",
+  "tradeoffs": [
+   "Compute-optimal minimises training cost; inference-optimal minimises lifetime cost - choose per deployment.",
+   "Extrapolating scaling laws beyond the fitted range is risky; always show fit quality."
+  ],
+  "pitfalls": [
+   "Comparing models by parameters without tokens/compute.",
+   "Ignoring embedding parameters or MoE active-vs-total.",
+   "Fitting a law to 2 points.",
+   "Calling a metric jump 'emergent' without checking a continuous metric."
+  ],
+  "interview": [
+   "Derive 6ND and explain Chinchilla.",
+   "Why would a company train a smaller model on far more tokens than Chinchilla suggests?",
+   "How much memory does AdamW training need per parameter?"
+  ],
+  "use": [
+   "Budgeting a training run, justifying model size, writing the compute section."
+  ],
+  "avoid": [
+   "Do not present a scaling law without stating the recipe, data and fit range."
+  ],
+  "qa": [
+   {
+    "q": "Where does 6 come from in C = 6ND?",
+    "a": "A forward pass is ~2 FLOPs per parameter per token (multiply + add). The backward pass costs ~2x the forward (gradient w.r.t. activations and w.r.t. weights), i.e. 4. Total 2+4 = 6 per parameter per token."
+   }
+  ]
+ },
+ {
+  "id": "dl-distributed",
+  "phase": "deep-learning",
+  "group": "6 · Training at scale",
+  "title": "Distributed training: data, tensor, pipeline, sequence, expert parallelism, ZeRO/FSDP",
+  "tagline": "How a model that does not fit on one GPU is trained across thousands - and what each strategy costs in communication.",
+  "viz": "trainmem-lab",
+  "explain": "**Collectives**: all-reduce (sum across ranks), all-gather, reduce-scatter, all-to-all. Ring all-reduce moves $2\\frac{p-1}{p}S$ bytes per rank for message size $S$ (≈$2S$) independent of $p$. Bandwidth hierarchy: HBM (TB/s) ≫ NVLink (~900 GB/s) ≫ InfiniBand (~50 GB/s/node-link) ≫ Ethernet. Put chatty parallelism inside a node.\n\n**Data parallelism (DDP)**: replicate the model, shard the batch, all-reduce gradients. Simple and efficient; memory per GPU unchanged.\n\n**ZeRO / FSDP**: shard what DDP replicates. Stage 1 shards optimizer state, stage 2 + gradients, stage 3 (FSDP) + parameters (all-gather before each layer's forward/backward, then free). Memory per GPU ≈ $16N/p$ (+activations), at ~1.5x DDP communication. Offload to CPU/NVMe trades speed for capacity.\n\n**Tensor parallelism (TP, Megatron)**: split matrix multiplies across GPUs - column-parallel $W_1$ then row-parallel $W_2$ so one all-reduce per FFN and per attention block. Needs very fast links → within a node (TP≤8). Reduces per-GPU weights and activations.\n\n**Pipeline parallelism (PP)**: split layers into stages; micro-batches flow through (GPipe, 1F1B, interleaved). **Bubble fraction** $\\approx\\frac{p-1}{m+p-1}$ for $p$ stages and $m$ micro-batches → use $m\\gg p$. Activations of in-flight micro-batches limit memory.\n\n**Sequence/context parallelism**: shard the sequence (ring attention, DeepSpeed-Ulysses) for long contexts. **Expert parallelism**: shard MoE experts, all-to-all token dispatch.\n\n**3D/4D parallelism**: combine DP × TP × PP (× SP/EP). Typical LLM recipe: TP=8 within a node, PP across nodes, FSDP/DP across the rest; scale until MFU drops.\n\n**Practicalities**: gradient accumulation, activation checkpointing, overlapping communication with compute, mixed precision, **checkpointing** (sharded, async) and fault tolerance (a 10k-GPU job fails every few hours → frequent checkpoints, automatic restart, straggler detection), deterministic data loaders, monitoring (MFU, loss, grad norm, per-rank step time), loss-spike handling (skip batch, roll back, lower LR).\n\n**Choosing**: model fits on one GPU → DDP; fits only when sharded → FSDP/ZeRO-3; very large or slow interconnect → add TP/PP; long context → sequence parallel; MoE → expert parallel.",
+  "tradeoffs": [
+   "FSDP is simple but communication-heavy across slow links; TP/PP need engineering but scale further.",
+   "Pipeline bubbles waste compute; more micro-batches shrink bubbles but increase activation memory."
+  ],
+  "pitfalls": [
+   "TP across nodes with slow interconnect.",
+   "Too few micro-batches (large pipeline bubble).",
+   "Not overlapping communication.",
+   "Checkpoints not resumable (optimizer/RNG/data position)."
+  ],
+  "interview": [
+   "Compare DDP, FSDP/ZeRO-3, tensor and pipeline parallelism.",
+   "How big is the pipeline bubble?",
+   "How would you train a 70B model on 64 GPUs?"
+  ],
+  "use": [
+   "Planning large runs and describing the training infrastructure in a paper."
+  ],
+  "avoid": [
+   "Do not reach for 3D parallelism if FSDP already fits and keeps MFU healthy."
+  ],
+  "qa": [
+   {
+    "q": "70B model, AdamW, bf16: how many 80GB GPUs just to hold training state?",
+    "a": "≈16 bytes × 70B = 1.12 TB. Sharded evenly (ZeRO-3) that is ≥ 15 GPUs of 80GB for state alone; in practice 64+ to leave room for activations and keep the batch size and MFU reasonable."
+   }
+  ]
+ },
+ {
+  "id": "dl-sft-peft",
+  "phase": "deep-learning",
+  "group": "7 · Post-training and efficiency",
+  "title": "Supervised fine-tuning and parameter-efficient methods: LoRA, QLoRA, adapters",
+  "tagline": "Adapt a pretrained model with minimal compute - and know the maths of low-rank updates.",
+  "viz": "matrix-lab",
+  "explain": "**SFT / instruction tuning**: continue training on (prompt, response) pairs with the causal-LM loss **masked to the response tokens only** (do not train on the prompt). Data quality > quantity (LIMA: ~1k excellent examples shift style/format; capabilities come from pre-training). Use the model's chat template; pack carefully; typical LR 1e-5 (full) / 1e-4-2e-4 (LoRA), 1-3 epochs (more overfits), weight decay small, warmup 3%.\n\n**LoRA**: freeze $W_0\\in\\mathbb R^{d\\times k}$ and learn $\\Delta W=\\frac{\\alpha}{r}BA$, $B\\in\\mathbb R^{d\\times r}$ (init 0), $A\\in\\mathbb R^{r\\times k}$ (init Gaussian), rank $r=8$-$64$. Trainable params $r(d+k)$ vs $dk$ - ~0.1-1%. Output $h=W_0x+\\frac{\\alpha}{r}BAx$. At deployment merge $W=W_0+\\frac\\alpha rBA$ → **zero inference overhead**; swap many adapters on one base model. Apply to all linear layers (attention + MLP) for best quality. **Hypothesis**: the fine-tuning update has low intrinsic rank (see the SVD concept). Variants: **QLoRA** (4-bit NF4 quantised frozen base + double quantisation + paged optimizers → fine-tune 65B on one 48GB GPU), **DoRA** (magnitude/direction decomposition), **rsLoRA** ($\\alpha/\\sqrt r$ scaling), **LoRA+** (higher LR for $B$), **PiSSA** (init from top singular vectors), **AdaLoRA** (adaptive rank).\n\n**Other PEFT**: adapters (bottleneck modules inserted in each block), prefix/prompt tuning (learned virtual tokens), IA³ (learned scaling vectors), BitFit (bias only). Full fine-tuning remains the quality ceiling when data is large; LoRA \"learns less and forgets less\" (Biderman et al.).\n\n**Catastrophic forgetting**: mitigate with low LR, LoRA, replay of pre-training/general data, weight-space regularisation (EWC), model merging after fine-tuning.\n\n**Evaluation of SFT**: hold-out task metrics, general benchmarks (to detect regression), LLM-as-judge/human preference (pairwise with position-swap), format/instruction-following checks; compare with the base model with a good few-shot prompt - often a strong baseline.\n\n**Memory with LoRA**: weights (2 B/param or 0.5 B in 4-bit) + small adapter state; activations dominate → checkpointing, short sequences, FlashAttention.",
+  "tradeoffs": [
+   "LoRA is cheap and modular but can underperform full fine-tuning on large domain shifts or heavy knowledge injection.",
+   "Higher rank = more capacity but diminishing returns; r=16 is a robust default."
+  ],
+  "pitfalls": [
+   "Training on prompt tokens (wastes capacity, harms behaviour).",
+   "Wrong chat template / EOS at fine-tune vs inference.",
+   "Overfitting small SFT sets with many epochs.",
+   "Merging LoRA into a quantised model without care for quantisation error.",
+   "Evaluating only on the fine-tuned task and missing capability regressions."
+  ],
+  "interview": [
+   "Derive the parameter saving of LoRA and why B is initialised to zero.",
+   "QLoRA: what is quantised and what is trained?",
+   "When would you prefer full fine-tuning to LoRA?"
+  ],
+  "use": [
+   "Domain/style adaptation, instruction following, agents with tool formats, task specialisation under a budget."
+  ],
+  "avoid": [
+   "Do not fine-tune to inject fast-changing facts - use retrieval."
+  ],
+  "qa": [
+   {
+    "q": "Why initialise B=0?",
+    "a": "So $\\Delta W=BA=0$ at the start and the adapted model equals the pretrained model exactly; training starts from the pretrained function, avoiding a random perturbation. $A$ is random so that gradients to $B$ are non-zero."
+   }
+  ]
+ },
+ {
+  "id": "dl-alignment",
+  "phase": "deep-learning",
+  "group": "7 · Post-training and efficiency",
+  "title": "Preference optimisation: RLHF/PPO, DPO family, GRPO and RL with verifiable rewards",
+  "tagline": "How models are aligned and taught to reason - with the objectives derived.",
+  "viz": null,
+  "explain": "**RLHF pipeline**: (1) SFT model $\\pi_{SFT}$; (2) train a **reward model** $r_\\phi$ on human preference pairs $(x,y_w,y_l)$ with the Bradley-Terry loss $-\\log\\sigma(r(x,y_w)-r(x,y_l))$; (3) optimise the policy with RL (PPO) on\n\n```math\n\\max_{\\pi}\\ \\mathbb E_{x,y\\sim\\pi}[r_\\phi(x,y)]-\\beta\\,D_{KL}\\big(\\pi(\\cdot|x)\\,\\|\\,\\pi_{ref}(\\cdot|x)\\big)\n```\n\nThe KL term keeps the policy near the reference and limits **reward hacking**. PPO needs four models in memory (policy, reference, reward, value/critic), GAE advantages, clipped ratio $\\min(r_t\\hat A,\\mathrm{clip}(r_t,1\\pm\\epsilon)\\hat A)$ - powerful but fragile and expensive.\n\n**DPO** (Rafailov 2023) derives a closed form: the optimal policy of the KL-regularised objective is $\\pi^*(y|x)\\propto\\pi_{ref}(y|x)\\exp(r(x,y)/\\beta)$, so $r=\\beta\\log\\frac{\\pi^*}{\\pi_{ref}}+\\beta\\log Z(x)$. Substituting into Bradley-Terry cancels $Z$:\n\n```math\n\\mathcal L_{DPO}=-\\mathbb E\\Big[\\log\\sigma\\Big(\\beta\\log\\frac{\\pi_\\theta(y_w|x)}{\\pi_{ref}(y_w|x)}-\\beta\\log\\frac{\\pi_\\theta(y_l|x)}{\\pi_{ref}(y_l|x)}\\Big)\\Big]\n```\n\nNo reward model, no RL loop - just a classification loss on preference pairs. Variants: **IPO** (regularised, avoids overfitting to deterministic preferences), **KTO** (unpaired good/bad labels, prospect theory), **ORPO/SimPO** (reference-free), **online/iterative DPO** (sample from the current policy, label by judge). DPO is off-policy and can reduce likelihood of *both* chosen and rejected responses; length bias is common (length-normalise or penalise).\n\n**RLAIF / Constitutional AI**: AI feedback guided by written principles replaces or supplements human labels.\n\n**Reasoning & RLVR**: for tasks with checkable answers (math, code, puzzles) use **verifiable rewards** (exact-match, unit tests) with **GRPO**: sample a group of $G$ outputs per prompt, advantage $\\hat A_i=\\frac{r_i-\\mathrm{mean}(r)}{\\mathrm{std}(r)}$ (no critic), PPO-style clipped objective + KL. Models learn long chain-of-thought, self-verification and backtracking (DeepSeek-R1, o1-style). Related: process reward models (step-level), rejection sampling fine-tuning (best-of-N → SFT), **test-time compute scaling** (majority voting, search, long CoT).\n\n**Failure modes**: reward hacking/over-optimisation (the proxy reward rises while true quality falls - Goodhart; scaling laws for reward-model overoptimisation), sycophancy, verbosity bias, mode collapse/reduced diversity, alignment tax (benchmark regressions), reward model OOD, specification gaming in verifiable settings (tests that can be gamed).\n\n**Evaluation**: pairwise win-rate vs reference (human or strong judge with position/length controls), AlpacaEval/MT-Bench/Arena-Hard (length-controlled), safety/refusal suites, capability regressions, and diversity metrics.",
+  "tradeoffs": [
+   "DPO is simple and stable; online RL (PPO/GRPO) can reach higher ceilings and is needed for reasoning with verifiable rewards.",
+   "A stronger KL penalty is safer but limits improvement."
+  ],
+  "pitfalls": [
+   "Over-optimising a proxy reward without monitoring held-out human/gold preference.",
+   "Preference data with length confounds (longer = chosen).",
+   "Using an SFT reference different from the policy's init in DPO.",
+   "LLM-judge bias (position, verbosity, self-preference)."
+  ],
+  "interview": [
+   "Derive the DPO loss.",
+   "PPO-RLHF vs DPO vs GRPO: models needed, stability, data?",
+   "How would you detect reward hacking?"
+  ],
+  "use": [
+   "Writing the alignment/post-training section; choosing a method under compute and data constraints."
+  ],
+  "avoid": [
+   "Do not claim alignment improvement from win-rate against a single judge without human or multi-judge validation."
+  ],
+  "qa": [
+   {
+    "q": "Why is the KL penalty necessary?",
+    "a": "The reward model is only accurate near its training distribution; unconstrained RL finds outputs that exploit its errors (reward hacking) and drifts into degenerate text. The KL to the reference bounds drift and is equivalent to a trust-region/prior on the policy."
+   }
+  ]
+ },
+ {
+  "id": "dl-compression",
+  "phase": "deep-learning",
+  "group": "7 · Post-training and efficiency",
+  "title": "Model compression and fast inference: distillation, quantisation, pruning, merging, speculative decoding",
+  "tagline": "Make models smaller and faster and know exactly what accuracy you pay.",
+  "viz": "trainmem-lab",
+  "explain": "**Knowledge distillation**: train a student on the teacher's soft targets $\\mathcal L=(1-\\lambda)\\mathrm{CE}(y,p_s)+\\lambda T^2D_{KL}(p_t^{T}\\|p_s^{T})$; for LLMs: sequence-level distillation (train on teacher generations), logit distillation, on-policy distillation (student samples, teacher scores), reasoning-trace distillation (R1-distill).\n\n**Quantisation**: map weights/activations to low-bit integers $q=\\mathrm{round}(x/s)+z$, $\\hat x=s(q-z)$. **PTQ** (post-training): **GPTQ** (layer-wise second-order error minimisation), **AWQ** (protect salient channels by activation-aware scaling), **SmoothQuant** (move activation outliers into weights), **LLM.int8()** (mixed precision for outlier features), **NF4**, **FP8**. **QAT** simulates quantisation during training (straight-through estimator) - best accuracy at ≤4 bit. Granularity: per-tensor < per-channel < per-group (e.g. 128). **Outliers** in activations are the central difficulty. Typical: 8-bit ≈ lossless, 4-bit weight-only ≈ small loss for ≥7B, 2-3 bit needs special methods (QuIP#, AQLM). Memory: bytes/param = bits/8 → 7B at 4-bit ≈ 3.5 GB.\n\n**Pruning**: unstructured (magnitude, Wanda, SparseGPT: 50% sparsity with small loss but hardware needs 2:4 sparsity support), **structured** (remove heads/channels/layers - real speed-up, bigger accuracy loss), lottery-ticket hypothesis (sparse trainable sub-networks). **Low-rank factorisation** of weights (SVD).\n\n**Model merging**: weight averaging/model soups, **task arithmetic** ($\\theta=\\theta_0+\\sum\\lambda_i\\tau_i$, $\\tau_i=\\theta_i-\\theta_0$), TIES/DARE (resolve sign conflicts, drop redundant deltas), SLERP, evolutionary merging - combines skills without training; works when models share a base.\n\n**Inference acceleration**: KV cache, continuous batching (vLLM), paged attention, prefix caching, **speculative decoding** (draft proposes $\\gamma$ tokens, target verifies in one parallel pass; accept token with prob $\\min(1,p/q)$ → exact target distribution, 2-3x speed-up; Medusa/EAGLE heads, lookahead decoding), FlashAttention, tensor parallel serving, CUDA graphs, `torch.compile`, quantised KV.\n\n**Roofline thinking**: decode arithmetic intensity is low (read all weights per token) → memory-bandwidth-bound: tokens/s ≲ bandwidth / model-bytes. Hence quantisation and batching raise throughput; compute-bound prefill benefits from FlashAttention and TP.\n\n**Reporting**: accuracy vs size/latency Pareto front on named hardware, throughput at fixed batch, energy; evaluate on *long-context and reasoning* tasks too - quantisation errors compound there.",
+  "tradeoffs": [
+   "Distillation changes capability profile (student may lose tails/reasoning); quantisation is fast and nearly free at 8/4 bit but degrades subtle abilities.",
+   "Unstructured sparsity rarely speeds up on GPUs; structured pruning does."
+  ],
+  "pitfalls": [
+   "Judging quantisation by perplexity only (reasoning/long context degrade first).",
+   "Comparing latency on different hardware/batch sizes.",
+   "Merging models with different bases/tokenisers.",
+   "Speculative decoding with a poorly matched draft (low acceptance)."
+  ],
+  "interview": [
+   "How does speculative decoding preserve the target distribution?",
+   "GPTQ vs AWQ vs QAT?",
+   "Why is single-stream decoding memory-bound and what does that imply?"
+  ],
+  "use": [
+   "Deploying models cheaply, producing small student models, edge inference, efficiency papers."
+  ],
+  "avoid": [
+   "Do not quantise below 4 bits for reasoning-critical use without measured evaluation."
+  ],
+  "qa": [
+   {
+    "q": "Upper bound on decode tokens/s for a 70B bf16 model on a GPU with 2 TB/s memory bandwidth, batch 1?",
+    "a": "Each token reads all 140 GB of weights: ≈ 2,000 / 140 ≈ 14 tokens/s per GPU (before KV cache). Quantising to 4-bit (35 GB) or sharding over several GPUs raises it ~4x or N-fold."
+   }
+  ]
+ },
+ {
+  "id": "dl-interp-robust",
+  "phase": "deep-learning",
+  "group": "8 · Research practice in deep learning",
+  "title": "Interpretability, robustness, calibration and safety evaluation",
+  "tagline": "Questions reviewers increasingly expect you to address.",
+  "viz": null,
+  "explain": "**Attribution**: saliency/gradients, **Integrated Gradients** ($(x-x')\\int_0^1\\nabla F(x'+\\alpha(x-x'))d\\alpha$, satisfies completeness/sensitivity axioms), Grad-CAM (class-discriminative heatmaps for CNNs), SHAP/LIME (model-agnostic). Sanity checks (Adebayo et al.): an explanation that does not change when weights are randomised is not explaining the model.\n\n**Mechanistic interpretability**: view the transformer as a residual stream; study **circuits** (induction heads, name-movers), **activation patching/causal tracing** (intervene to test causality), **logit lens**, probing classifiers (beware: probes can learn the task themselves - use control tasks), **sparse autoencoders (SAEs)** to decompose activations into interpretable features (superposition: more features than dimensions), steering vectors/representation engineering.\n\n**Robustness**: **adversarial examples** $\\max_{\\|\\delta\\|_p\\le\\epsilon}L(x+\\delta,y)$ via FGSM ($x+\\epsilon\\,\\mathrm{sign}\\nabla_xL$) or PGD (iterated, projected); **adversarial training** is the reliable defence (min-max); certified robustness (randomised smoothing). For LLMs: jailbreaks, prompt injection, adversarial suffixes. **Distribution shift**: covariate/label/concept shift; benchmarks ImageNet-C/R/A, WILDS; evaluate OOD, not only i.i.d. test accuracy. **Shortcut learning** (spurious features like background) and **group robustness** (worst-group accuracy; group DRO).\n\n**Calibration & uncertainty**: ECE, reliability diagrams, temperature scaling, deep ensembles, MC-dropout, conformal prediction (distribution-free coverage guarantees: with calibration scores $s_i$, predict the set $\\{y:s(x,y)\\le\\hat q\\}$ where $\\hat q$ is the $\\lceil(n+1)(1-\\alpha)\\rceil/n$ quantile → coverage ≥ $1-\\alpha$). Selective prediction / abstention and OOD detection (max-softmax, energy, Mahalanobis) with proper baselines.\n\n**Safety & fairness evaluation**: group metrics (demographic parity, equalised odds - which cannot all hold at once), bias benchmarks, red-teaming, privacy (membership inference, memorisation/extraction, differential privacy DP-SGD), memorisation audits.\n\n**Reporting**: include OOD/robustness tests, calibration, failure-case analysis and limitations - these strengthen a submission and pre-empt reviewer objections.",
+  "tradeoffs": [
+   "Adversarial training costs 3-10x compute and reduces clean accuracy; certified methods give guarantees at larger cost.",
+   "Attribution methods disagree; choose by faithfulness tests rather than aesthetics."
+  ],
+  "pitfalls": [
+   "Presenting saliency maps as proof of reasoning.",
+   "Probing without control tasks.",
+   "Reporting only i.i.d. accuracy.",
+   "Using weak attacks to claim robustness (gradient masking)."
+  ],
+  "interview": [
+   "How does PGD adversarial training work?",
+   "What are sparse autoencoders for interpretability and what is superposition?",
+   "How does conformal prediction guarantee coverage?"
+  ],
+  "use": [
+   "Strengthening a paper's analysis section; safety-critical deployments."
+  ],
+  "avoid": [
+   "Do not claim 'robust' without adaptive attacks and OOD evaluation."
+  ],
+  "qa": [
+   {
+    "q": "Why can't all fairness criteria be satisfied simultaneously?",
+    "a": "Impossibility results (Kleinberg et al., Chouldechova) show that when base rates differ across groups, calibration, equal false-positive rates and equal false-negative rates cannot all hold unless the classifier is perfect; you must choose by context and harm."
+   }
+  ]
+ },
+ {
+  "id": "dl-experiments",
+  "phase": "deep-learning",
+  "group": "8 · Research practice in deep learning",
+  "title": "Designing and reporting deep-learning experiments: baselines, ablations, benchmarks, reproducibility",
+  "tagline": "The practices that separate accepted papers from rejected ones.",
+  "viz": "significance-lab",
+  "explain": "**Baselines**: include (1) a trivial baseline, (2) the strongest published method *re-run under your protocol* with equal tuning budget, (3) a simple strong baseline (e.g. fine-tuned pretrained model, GBDT on tabular). Copying numbers from other papers is only valid if the setup is identical.\n\n**Ablations**: remove or replace each proposed component one at a time (and in combination) holding everything else fixed; show each contributes; include \"no-X\", \"replace-X-with-simple-alternative\", and sensitivity to hyper-parameters. Use the same budget and seeds.\n\n**Controls**: match parameters/FLOPs/data/steps; control for the training recipe (a new architecture trained with a better recipe is not an architectural gain); report the compute used for hyper-parameter search for *all* methods.\n\n**Statistics**: ≥3-5 seeds (more for small effects), mean ± std/CI, paired tests/bootstrap, multiple-comparison correction, effect sizes (see the research-statistics concept); for benchmarks report confidence intervals (a 1-point difference on a 500-item test set is within noise: SE ≈ $\\sqrt{p(1-p)/n}\\approx2.2\\%$).\n\n**Benchmarks & evaluation hygiene**: held-out test used once; check **contamination**; avoid overfitting to a public leaderboard through repeated submissions; prefer multiple benchmarks and a new/private evaluation; report metrics appropriate to the task (calibration, worst-group, latency, cost); use LLM-judges only with validation against humans and position/length controls; record prompts, decoding parameters and the number of samples.\n\n**Efficiency reporting**: params (total/active), FLOPs, memory, latency/throughput on named hardware, training time, energy/CO₂ (Green AI).\n\n**Reproducibility checklist** (NeurIPS/ICML/IEEE-style): code and configs; seeds; versions (CUDA, PyTorch); hardware; data splits and preprocessing; full hyper-parameter table and search ranges; training curves; results table generated by script; model cards/data statements; statement of limitations and negative results; licences.\n\n**Failure analysis**: show where the method fails (error breakdown, qualitative failures, scaling limits). Reviewers trust papers that expose limitations.\n\n**Common rejection reasons**: weak/untuned baselines, no ablation, single seed, unfair comparison, benchmark contamination, no analysis of *why* it works, overclaiming, missing related work.\n\n**Workflow**: write a one-page experiment plan (hypothesis, metric, baselines, expected result, stop criterion) before running; keep an experiment log with config hash; automate sweeps (W&B/MLflow); freeze the test set until the end.",
+  "tradeoffs": [
+   "More seeds/baselines cost compute; prioritise: strong baseline, ablations of the core claim, seeds on the headline table.",
+   "Public benchmarks give comparability but risk saturation/contamination."
+  ],
+  "pitfalls": [
+   "Un-tuned baselines.",
+   "Cherry-picked seeds/prompts.",
+   "Reporting the best checkpoint chosen on the test set.",
+   "Claiming novelty from a recipe change."
+  ],
+  "interview": [
+   "What ablations would you run for a new attention mechanism?",
+   "How do you make a comparison fair?",
+   "A 1-point gain on a small benchmark - is it real?"
+  ],
+  "use": [
+   "Planning experiments for your own paper; reviewing others'."
+  ],
+  "avoid": [
+   "Do not ship a results table that cannot be regenerated by one command."
+  ],
+  "qa": [
+   {
+    "q": "Reviewer: 'improvement may come from tuning, not your method'. Response?",
+    "a": "Run both methods with equal hyper-parameter search budgets (report ranges), add seeds with CIs, include an ablation swapping only your component, and optionally release configs/code so the comparison can be reproduced."
+   }
+  ]
+ },
+ {
+  "id": "dl-paper-writing",
+  "phase": "deep-learning",
+  "group": "8 · Research practice in deep learning",
+  "title": "From idea to publication: choosing a problem, positioning, writing and submitting a deep-learning paper (IEEE/ISI)",
+  "tagline": "A practical research workflow specific to deep learning.",
+  "viz": null,
+  "explain": "**Choosing a problem**: pick a narrow, evaluable gap. Good sources: limitations in recent papers' \"future work\", failure cases of strong baselines, new data regimes (low-resource, domain shift), efficiency (same accuracy, less compute), robustness/safety analysis, applications with real data in a domain you know (medical, industrial, remote sensing, education, Persian/low-resource NLP). An **application + sound methodology + public/reproducible data** often fits IEEE Access/Transactions and ISI journals well; novel methods need strong evidence.\n\n**Contribution types**: new method; new application with rigorous evaluation; new dataset/benchmark; empirical study/analysis; theory; survey. State contributions as 3 testable bullets in the introduction.\n\n**Literature**: read 30-60 papers; build a table (method, data, metric, results, limitations); use Semantic Scholar/Google Scholar/arXiv/Papers With Code; follow citation graphs both ways; track the strongest *recent* baselines (reviewers check this).\n\n**Execution plan**: (1) reproduce a baseline end-to-end; (2) build the smallest version of your idea; (3) test on one dataset with seeds; (4) add ablations; (5) add more datasets; (6) analysis (visualisation, error analysis, efficiency, robustness); (7) write.\n\n**Paper structure**: Abstract → Introduction (problem, gap, idea, contributions) → Related Work (organised by theme, ending with how you differ) → Method (notation table, architecture figure, algorithm box, loss, complexity) → Experiments (datasets, metrics, baselines, implementation details, main results, ablations, analysis, limitations) → Conclusion. Figures: architecture diagram, results plots with error bars, qualitative examples; tables: bold best, show std. Keep the equations consistent with code.\n\n**Venues**: IEEE Transactions (TNNLS, TPAMI, TIP, TMM, TGRS, TBME…), IEEE Access (fast, broad), Elsevier/Springer journals (Neural Networks, Pattern Recognition, Expert Systems with Applications, Neurocomputing), and conferences (NeurIPS/ICML/ICLR/CVPR/ACL/AAAI). Check indexing (Web of Science/JCR quartile, Scopus), scope, review time, APC and policy on AI-generated text, preprints and data/code sharing. Avoid predatory journals.\n\n**Submission & review**: cover letter, formatting (IEEEtran), reproducibility statement, suggested reviewers; expect major revision; write a point-by-point response with new experiments, not arguments; keep a changelog.\n\n**Ethics**: no plagiarism; cite datasets/code; declare AI-assistance per journal policy; respect data licences and privacy; report negative results honestly.\n\n**Time plan** (6-9 months for a first journal paper): month 1 survey+baseline, 2-3 method+experiments, 4 ablations/analysis, 5 writing, 6 internal review + submission, then revisions.",
+  "tradeoffs": [
+   "A solid application paper with rigorous methodology is more achievable first than a new architecture needing SOTA.",
+   "Preprint early for visibility only after checking the target venue's policy."
+  ],
+  "pitfalls": [
+   "Chasing SOTA on a saturated benchmark.",
+   "Weak related work (missing the recent strongest method).",
+   "Overclaiming in the abstract.",
+   "Ignoring venue scope/format → desk reject.",
+   "Publishing in a predatory journal."
+  ],
+  "interview": [
+   "How do you pick a research problem?",
+   "How would you respond to 'incremental novelty'?"
+  ],
+  "use": [
+   "Use as your project plan for the ISI/IEEE paper; revisit the checklist before each stage."
+  ],
+  "avoid": [
+   "Do not start writing before you have a baseline reproduced and a clear hypothesis with an evaluation plan."
+  ],
+  "qa": [
+   {
+    "q": "How do I know my result is publishable?",
+    "a": "It beats strong, equally-tuned baselines with statistical evidence on more than one dataset or setting, each component is justified by an ablation, you can explain why it works, limitations are stated, and the work is reproducible. If any of these is missing, fix it before submitting."
+   }
+  ]
+ }
+]

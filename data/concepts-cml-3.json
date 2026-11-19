@@ -1,0 +1,248 @@
+[
+ {
+  "id": "cml-ensembles",
+  "phase": "classical-ml",
+  "group": "5 · Ensemble learning",
+  "title": "Ensemble learning: bagging, boosting, stacking, blending, voting",
+  "tagline": "Why combining models works (variance, bias, diversity) and the five ways to do it.",
+  "viz": "boost-lab",
+  "explain": "**Why ensembles win.** For $B$ models with error variance $\\sigma^2$ and pairwise correlation $\\rho$, the averaged variance is $\\rho\\sigma^2+\\frac{1-\\rho}B\\sigma^2$: averaging helps in proportion to how **diverse** (uncorrelated) the members are. The ambiguity decomposition: ensemble error = average member error − diversity. Sources of diversity: different data (bootstrap), features (random subspace), algorithms, hyper-parameters, seeds, initialisation.\n\n**Bagging (bootstrap aggregating).** Train each model on a bootstrap sample (drawn with replacement, ~63.2% unique rows), average/vote. Reduces **variance**; works with unstable learners (deep trees). Random Forest = bagging + feature subsampling. Out-of-bag samples give a free validation score.\n\n**Boosting.** Train weak learners **sequentially**, each focusing on previous mistakes; reduces **bias**.\n- **AdaBoost** reweights samples (exponential loss).\n- **Gradient boosting** fits each learner to the negative gradient of an arbitrary differentiable loss; shrinkage $\\eta$ and subsampling regularise.\n- **XGBoost / LightGBM / CatBoost** are engineered versions (see below).\nBoosting is more accurate than bagging on clean tabular data but more sensitive to noisy labels and hyper-parameters.\n\n**Voting.** *Hard voting* = majority class; *soft voting* = average of predicted probabilities (better when probabilities are calibrated); weights by validation performance.\n\n**Stacking (stacked generalisation).** A meta-learner (often logistic/ridge) is trained on the **out-of-fold predictions** of base models; `StackingClassifier` does the cross-fitting. Needs diverse base models (linear, trees, kNN, NN). The meta-model must never see in-fold predictions, otherwise leakage.\n\n**Blending.** Simpler variant: train base models on the training split, fit the meta-model on a **hold-out** set. Cheaper than stacking, uses less data; common in Kaggle.\n\n**Other**: snapshot/checkpoint ensembles, Monte-Carlo dropout, deep ensembles (strong uncertainty baseline), mixture-of-experts, model soups (weight averaging), bagged neural nets, and **cascades**.\n\n**Practical rules**: ensemble gains shrink when members are similar; start with 3-5 diverse strong models; check complexity/latency; keep a single best model as the interpretable fallback; log everything for the paper's ablation (single models vs ensemble).",
+  "tradeoffs": [
+   "Accuracy gains vs training/inference cost and loss of interpretability.",
+   "Stacking squeezes extra accuracy but is complex and leakage-prone."
+  ],
+  "pitfalls": [
+   "Highly correlated members (no gain).",
+   "Fitting the meta-learner on in-sample base predictions.",
+   "Ensembling after tuning on the test set."
+  ],
+  "interview": [
+   "Bagging vs boosting: bias/variance effects?",
+   "How does stacking avoid leakage?",
+   "Why is hard voting weaker than soft voting?"
+  ],
+  "use": [
+   "Competitions and production tabular models where a 1-3% gain matters."
+  ],
+  "avoid": [
+   "Avoid ensembles when latency/memory/explainability dominate and a single model is within the noise."
+  ],
+  "qa": [
+   {
+    "q": "Why does a bootstrap sample contain ~63.2% unique points?",
+    "a": "Probability a given row is never drawn in $n$ draws is $(1-1/n)^n\\to e^{-1}\\approx0.368$, so $\\approx63.2\\%$ of rows appear at least once; the remaining 36.8% are the out-of-bag set."
+   }
+  ]
+ },
+ {
+  "id": "cml-gbm-libs",
+  "phase": "classical-ml",
+  "group": "5 · Ensemble learning",
+  "title": "Gradient boosting engines: GBM math, XGBoost, LightGBM, CatBoost and tuning",
+  "tagline": "How the three libraries differ, the objective they optimise, and the tuning order that works.",
+  "viz": "boost-lab",
+  "explain": "**Gradient boosting as functional gradient descent.** Model $F_M(x)=\\sum_{m}\\eta h_m(x)$. At stage $m$ compute pseudo-residuals $r_{im}=-\\left.\\frac{\\partial L(y_i,F)}{\\partial F}\\right|_{F_{m-1}}$, fit a tree $h_m$ to them, set leaf values by line search, update with learning rate $\\eta$.\n\n**XGBoost** adds a second-order Taylor expansion and explicit regularisation: objective $\\sum_i[g_if+\\tfrac12h_if^2]+\\gamma T+\\tfrac12\\lambda\\sum w_j^2$ with gradient $g_i$ and Hessian $h_i$; optimal leaf weight $w^*=-\\frac{G}{H+\\lambda}$ and split gain $\\tfrac12\\left[\\frac{G_L^2}{H_L+\\lambda}+\\frac{G_R^2}{H_R+\\lambda}-\\frac{G^2}{H+\\lambda}\\right]-\\gamma$. Features: sparsity-aware splits (learned default direction for NaN), weighted quantile sketch, column block caching, GPU histograms, built-in L1/L2, early stopping, monotone and interaction constraints.\n\n**LightGBM**: **histogram** binning (fast, low memory), **leaf-wise** (best-first) tree growth (deeper, lower loss for same leaves, can overfit small data → set `num_leaves`, `min_data_in_leaf`), **GOSS** (keep large-gradient rows, sample small ones), **EFB** (bundle exclusive sparse features), native categorical splits. Usually the fastest.\n\n**CatBoost**: **ordered boosting** and **ordered target statistics** remove target leakage for categorical features, **symmetric (oblivious) trees** (fast inference, strong regularisation), excellent defaults, GPU support.\n\n**Tuning order (practical)**\n1. Fix learning rate ~0.05-0.1 and use **early stopping** on a validation fold to find the number of trees.\n2. Tree complexity: `max_depth` (3-10) / `num_leaves`, `min_child_weight` / `min_data_in_leaf`.\n3. Randomness: `subsample` (0.6-1), `colsample_bytree` (0.5-1).\n4. Regularisation: `reg_lambda`, `reg_alpha`, `gamma`.\n5. Lower learning rate, more trees at the end. Use Optuna/Bayesian search, not grids.\n\n```python\nimport xgboost as xgb\nmodel = xgb.XGBClassifier(n_estimators=5000, learning_rate=0.05, max_depth=6,\n    subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0, eval_metric=\"auc\",\n    early_stopping_rounds=100, tree_method=\"hist\")\nmodel.fit(Xtr, ytr, eval_set=[(Xva, yva)], verbose=False)\n```\n\n**Interpretation**: gain/cover/split importances (biased), permutation importance, **SHAP TreeExplainer** (exact, fast). **Imbalance**: `scale_pos_weight`. **Calibration**: boosted probabilities are often miscalibrated.",
+  "tradeoffs": [
+   "Highest accuracy on tabular data but many hyper-parameters.",
+   "Leaf-wise growth is faster/more accurate but overfits small data; depth-wise is steadier."
+  ],
+  "pitfalls": [
+   "No early stopping.",
+   "Early-stopping on the test fold.",
+   "Leaving high-cardinality IDs in features.",
+   "Trusting split-count importance."
+  ],
+  "interview": [
+   "Why a second-order approximation in XGBoost?",
+   "LightGBM vs XGBoost differences?",
+   "How does CatBoost avoid target leakage?"
+  ],
+  "use": [
+   "Credit scoring, click prediction, forecasting features, structured Kaggle problems."
+  ],
+  "avoid": [
+   "Don't use on raw images/text/audio where deep nets dominate."
+  ],
+  "qa": [
+   {
+    "q": "What does early stopping protect against?",
+    "a": "Adding too many trees after validation loss has started rising (overfitting); training halts when the metric hasn't improved for N rounds and restores the best iteration."
+   }
+  ]
+ },
+ {
+  "id": "cml-learning-theory",
+  "phase": "classical-ml",
+  "group": "6 · Learning theory and hyper-parameter optimisation",
+  "title": "Statistical learning theory: ERM, SRM, VC dimension, PAC learning, Rademacher complexity, bias-variance",
+  "tagline": "The mathematics of why generalisation happens and when it provably does.",
+  "viz": "bias-variance",
+  "explain": "**Setup.** Data $(x,y)\\sim D$ i.i.d.; loss $\\ell$; **true risk** $R(h)=\\mathbb E\\,\\ell(h(x),y)$, **empirical risk** $\\hat R_n(h)=\\frac1n\\sum\\ell(h(x_i),y_i)$. The aim is small $R$ while only $\\hat R_n$ is observable.\n\n**ERM** (empirical risk minimisation): choose $\\hat h=\\arg\\min_{h\\in\\mathcal H}\\hat R_n(h)$. Error decomposes into **approximation error** (best in $\\mathcal H$ vs Bayes optimal; shrinks with richer $\\mathcal H$) and **estimation error** (finite sample; grows with richer $\\mathcal H$). **SRM** (structural risk minimisation): nested classes $\\mathcal H_1\\subset\\mathcal H_2\\subset\\dots$ and minimise empirical risk + complexity penalty - the formal basis of regularisation and SVMs.\n\n**Finite class bound (Hoeffding + union).** With prob. $\\ge1-\\delta$: $R(h)\\le\\hat R_n(h)+\\sqrt{\\frac{\\ln|\\mathcal H|+\\ln(1/\\delta)}{2n}}$.\n\n**VC dimension.** The largest set size that $\\mathcal H$ can **shatter** (realise all $2^m$ labellings). Examples: lines in $\\mathbb R^2$ → 3; hyperplanes in $\\mathbb R^d$ → $d+1$; axis-aligned rectangles in $\\mathbb R^2$ → 4; sine classifiers $\\mathrm{sign}\\sin(ax)$ → ∞. **VC bound**: $R(h)\\le\\hat R_n(h)+\\sqrt{\\frac{d_{VC}(\\ln\\frac{2n}{d_{VC}}+1)+\\ln\\frac4\\delta}{n}}$ ⇒ sample complexity $\\propto d_{VC}/\\epsilon^2$.\n\n**PAC learning.** A class is PAC-learnable if for any $\\epsilon,\\delta$ an algorithm outputs, with probability $\\ge1-\\delta$, a hypothesis with error $\\le\\epsilon$ using polynomially many samples (and time). Finite VC dimension ⇔ PAC-learnable (fundamental theorem). Realisable case: $n\\ge\\frac1\\epsilon(\\ln|\\mathcal H|+\\ln\\frac1\\delta)$; agnostic: $\\frac1{\\epsilon^2}$.\n\n**Rademacher complexity.** $\\mathfrak R_n(\\mathcal H)=\\mathbb E_{\\sigma,S}\\sup_h\\frac1n\\sum\\sigma_ih(x_i)$ with random signs $\\sigma_i$: how well $\\mathcal H$ can fit **random noise**; data-dependent and tighter: $R(h)\\le\\hat R_n(h)+2\\mathfrak R_n+\\sqrt{\\frac{\\ln(1/\\delta)}{2n}}$. For linear predictors with $\\|w\\|\\le B$, $\\|x\\|\\le X$: $\\mathfrak R_n\\le BX/\\sqrt n$ - explains weight-norm regularisation.\n\n**Other tools**: margin bounds, PAC-Bayes (generalisation of stochastic predictors, non-vacuous for some nets), algorithmic stability, uniform convergence, no-free-lunch theorem, double descent (test error can fall again beyond interpolation; classical bounds are vacuous for deep nets).\n\n**Bias-variance (squared loss).** $\\mathbb E[(y-\\hat f)^2]=\\text{Bias}^2+\\text{Var}+\\sigma^2_{noise}$. Under-fit: high bias; over-fit: high variance. Regularisation, more data, bagging (↓var), boosting (↓bias) shift the trade-off.",
+  "tradeoffs": [
+   "Rich classes fit complex truths but need more data.",
+   "Classical bounds are conservative and often vacuous for deep nets; they guide intuition, not exact predictions."
+  ],
+  "pitfalls": [
+   "Reading VC as parameter count.",
+   "Treating bounds as predictions of test error.",
+   "Ignoring that train-test shift breaks the i.i.d. assumption."
+  ],
+  "interview": [
+   "State the VC bound and what it implies for sample size.",
+   "What is shattering?",
+   "Why does Rademacher complexity depend on the data?"
+  ],
+  "use": [
+   "Reading learning-theory sections of papers; reasoning about why regularisation/margins generalise."
+  ],
+  "avoid": [
+   "Do not quote worst-case bounds as practical guarantees."
+  ],
+  "qa": [
+   {
+    "q": "VC dimension of linear classifiers in 2-D?",
+    "a": "3. Any 3 non-collinear points can be labelled in all 8 ways by a line; no set of 4 points can be shattered (e.g. XOR configuration)."
+   }
+  ]
+ },
+ {
+  "id": "cml-cv-curves",
+  "phase": "classical-ml",
+  "group": "6 · Learning theory and hyper-parameter optimisation",
+  "title": "Cross-validation variants, learning curves, validation curves and diagnosing under/over-fitting",
+  "tagline": "The diagnostics that tell you what to do next: more data, more capacity, or more regularisation?",
+  "viz": "bias-variance",
+  "explain": "**CV variants**: **hold-out**; **K-fold** (K=5/10: low bias-variance compromise); **Stratified K-fold**; **Repeated K-fold** (reduces split noise); **Leave-One-Out** (unbiased but high variance, expensive); **Leave-P-Out**; **ShuffleSplit/bootstrap** (random repeated splits, .632 bootstrap); **GroupKFold**; **TimeSeriesSplit**; **Nested CV**. Report mean ± std (and CI), not the max.\n\n**Learning curve** = training and validation score vs **training-set size**.\n- Both curves low & converged → **high bias** (underfit): add capacity/features, reduce regularisation; more data will not help.\n- Large gap, validation still improving → **high variance** (overfit): more data, stronger regularisation, simpler model, augmentation, bagging.\n- Curves converge high → good; if validation plateaus below the target, the error is irreducible noise or missing features.\n\n**Validation curve** = scores vs one hyper-parameter (e.g. depth, $C$, $\\lambda$, $k$): train score keeps rising while validation peaks - pick the peak (and the simplest model within one standard error).\n\n**Diagnostic recipe**\n1. Compute train and validation metrics. Train ≪ target → bias problem. Train good, validation bad → variance.\n2. Check data issues first (leakage, label noise, shift).\n3. Try the cheaper fix: regularisation / early stopping / more data / feature engineering.\n4. Error analysis: look at the worst 50 examples; group errors by slice (class, length, source, demographic).\n5. Compare against a human or trivial baseline; estimate Bayes error.\n\n**Learning-curve extrapolation** (power law $\\epsilon(n)=an^{-b}+c$) predicts whether collecting more data is worth the money.",
+  "tradeoffs": [
+   "K=10 lowers bias of the estimate but raises variance and cost compared with K=5.",
+   "Repeated CV stabilises estimates at multiplied compute."
+  ],
+  "pitfalls": [
+   "Reporting the CV score after tuning on it (use nested CV).",
+   "Reading learning curves from different data distributions.",
+   "Chasing the last 0.2% on a noisy validation set."
+  ],
+  "interview": [
+   "What does a large train-validation gap suggest and how do you fix it?",
+   "Why is LOOCV high variance?",
+   "What is a validation curve?"
+  ],
+  "use": [
+   "Every model-building cycle."
+  ],
+  "avoid": [
+   "Do not tune hyper-parameters on the same folds used for the final reported score."
+  ],
+  "qa": [
+   {
+    "q": "Both curves are high-error and close. Will more data help?",
+    "a": "No. This is high bias; the model cannot represent the pattern. Increase capacity/features or reduce regularisation."
+   }
+  ]
+ },
+ {
+  "id": "cml-hpo",
+  "phase": "classical-ml",
+  "group": "6 · Learning theory and hyper-parameter optimisation",
+  "title": "Hyper-parameter optimisation: grid, random, Bayesian, Hyperband, evolutionary, AutoML",
+  "tagline": "Search strategies, why random beats grid, and how Bayesian optimisation spends a small budget wisely.",
+  "viz": "hypersearch-lab",
+  "explain": "**Parameters vs hyper-parameters.** Parameters (weights) are learned by training; hyper-parameters (learning rate, depth, $C$, $k$, dropout, architecture) are set outside the training loop and tuned on validation data.\n\n**Grid search.** Exhaustive over a discretised grid; cost grows exponentially with dimension and wastes trials on unimportant parameters.\n\n**Random search (Bergstra & Bengio, 2012).** Sample configurations from distributions (log-uniform for rates). When only a few hyper-parameters matter, random search covers *each important axis with more distinct values* than a grid of equal cost (see the lab above). Strong baseline.\n\n**Bayesian optimisation.** Fit a **surrogate** (Gaussian process, TPE, random forest/SMAC) to observed (config, score) pairs, then pick the next config by maximising an **acquisition function**: **Expected Improvement** $\\mathbb E[\\max(f(x)-f^+,0)]$, **UCB** $\\mu+\\kappa\\sigma$, **Probability of Improvement**. It balances **exploration** (high uncertainty) and **exploitation** (high mean). Tools: Optuna (TPE, pruning), Hyperopt, scikit-optimize, Ax/BoTorch, SMAC.\n\n**Multi-fidelity / early stopping.** **Successive halving** and **Hyperband** train many configs briefly, keep the best fraction, give them more budget; **ASHA** parallelises; **BOHB** combines Bayesian optimisation with Hyperband. **Population-Based Training (PBT)** evolves hyper-parameters during training.\n\n**Evolutionary / metaheuristic search**: genetic algorithms, CMA-ES, particle swarm - good for non-differentiable, conditional, architecture-like spaces (see NAS).\n\n**AutoML**: automate pre-processing, model selection, HPO and ensembling - auto-sklearn, TPOT, H2O AutoML, AutoGluon, FLAML, Google AutoML. Great baselines; document the search space and budget.\n\n**Best practices**: tune the learning rate first and on a log scale; use a validation set / CV (nested for reporting); fix seeds; log all trials; early-prune bad runs; define the search space from literature defaults; keep the *same budget* for all compared methods (fair comparison in papers); never tune on the test set.",
+  "tradeoffs": [
+   "Bayesian optimisation is sample-efficient but sequential and harder to parallelise.",
+   "Random search is trivially parallel but ignores history."
+  ],
+  "pitfalls": [
+   "Linear (not log) scales for learning rate/regularisation.",
+   "Giving the proposed method a bigger tuning budget than baselines (unfair comparison).",
+   "Overfitting the validation set through thousands of trials."
+  ],
+  "interview": [
+   "Why does random search beat grid search?",
+   "Explain Expected Improvement.",
+   "What is Hyperband?"
+  ],
+  "use": [
+   "Any model with more than ~3 hyper-parameters; costly deep models (use pruning)."
+  ],
+  "avoid": [
+   "Do not hand-tune baselines less than your own method."
+  ],
+  "qa": [
+   {
+    "q": "Which acquisition function and why?",
+    "a": "Expected Improvement is a robust default: it weighs both the size and probability of improvement and has a closed form under a GP; UCB is simpler with an explicit exploration knob κ."
+   }
+  ]
+ },
+ {
+  "id": "cml-metrics-clf",
+  "phase": "classical-ml",
+  "group": "7 · Evaluation metrics",
+  "title": "Classification metrics: confusion matrix, precision/recall/F-beta, ROC-AUC, PR-AUC, MCC, log-loss, multi-class averaging",
+  "tagline": "Pick the metric that matches the costs; understand thresholds, curves and averaging.",
+  "viz": "roc-lab",
+  "explain": "**Confusion matrix** (binary): TP, FP, FN, TN.\n- **Accuracy** $=\\frac{TP+TN}{N}$ - misleading with imbalance.\n- **Precision** $=\\frac{TP}{TP+FP}$ (trustworthiness of positive calls); **Recall/Sensitivity/TPR** $=\\frac{TP}{TP+FN}$; **Specificity/TNR** $=\\frac{TN}{TN+FP}$; **FPR** $=1-$ specificity.\n- **F1** $=\\frac{2PR}{P+R}$ (harmonic mean); **F-beta** $=(1+\\beta^2)\\frac{PR}{\\beta^2P+R}$ ($\\beta>1$ favours recall).\n- **Balanced accuracy** $=\\frac{TPR+TNR}2$; **MCC** $=\\frac{TP\\cdot TN-FP\\cdot FN}{\\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}}\\in[-1,1]$ - the single most reliable number for imbalanced binary data; **Cohen's κ** (agreement beyond chance); **Youden's J** $=TPR-FPR$; **G-mean**.\n\n**Threshold-free curves.** **ROC**: TPR vs FPR across thresholds; **AUC** = probability a random positive is ranked above a random negative (Mann-Whitney U); 0.5 = chance. ROC-AUC is insensitive to prevalence, which can hide poor precision when positives are rare. **Precision-Recall curve** and **average precision (PR-AUC)** are preferred under heavy imbalance (baseline = prevalence). Choose the operating point by cost $c_{FN}\\cdot FN+c_{FP}\\cdot FP$ or a precision target.\n\n**Probabilistic quality**: **log-loss** $-\\frac1n\\sum[y\\log p+(1-y)\\log(1-p)]$ (punishes confident errors), **Brier score** $\\frac1n\\sum(p-y)^2$, **calibration** (reliability diagram, ECE; fix by Platt scaling or isotonic regression).\n\n**Multi-class**: per-class one-vs-rest metrics, then **macro** (unweighted mean; treats classes equally), **micro** (pool counts; equals accuracy for single-label), **weighted** (by support). Top-$k$ accuracy, confusion matrix heat-map, per-class recall. **Multi-label**: Hamming loss, subset accuracy, sample-averaged F1, mAP. **Ranking/retrieval**: Recall@k, MRR, NDCG, MAP.\n\n**Reporting standard**: metric ± std over folds/seeds, confusion matrix, ROC and PR curves, the threshold used and how it was chosen, plus significance tests vs baselines (McNemar for paired classifiers; see research methods).",
+  "tradeoffs": [
+   "Precision and recall trade off through the threshold; F1 hides which side you sacrificed.",
+   "ROC-AUC is stable but optimistic with rare positives; PR-AUC is honest but depends on prevalence."
+  ],
+  "pitfalls": [
+   "Accuracy on imbalanced data.",
+   "Choosing the threshold on the test set.",
+   "Averaging F1 across folds instead of computing from pooled counts without saying so."
+  ],
+  "interview": [
+   "When is PR-AUC better than ROC-AUC?",
+   "What does AUC mean probabilistically?",
+   "Macro vs micro F1?"
+  ],
+  "use": [
+   "Always pair a threshold-free metric (AUC/AP) with a thresholded one tuned to the business cost."
+  ],
+  "avoid": [
+   "Do not compare accuracy across datasets with different prevalence."
+  ],
+  "qa": [
+   {
+    "q": "A fraud model has 99.9% accuracy. Good?",
+    "a": "Not informative: predicting 'no fraud' for everyone gets 99.9% if prevalence is 0.1%. Look at recall, precision, PR-AUC, MCC and the cost-weighted outcome."
+   }
+  ]
+ },
+ {
+  "id": "cml-metrics-reg-cluster",
+  "phase": "classical-ml",
+  "group": "7 · Evaluation metrics",
+  "title": "Regression and clustering metrics: MAE, MSE, RMSE, MAPE, R², and silhouette, Davies-Bouldin, ARI, NMI",
+  "tagline": "Error measures with their units and pitfalls, and how to validate clusters with and without labels.",
+  "viz": "kmeans-lab",
+  "explain": "**Regression metrics** (for residuals $e_i=y_i-\\hat y_i$)\n- **MAE** $=\\frac1n\\sum|e_i|$ - same units, robust, median-optimal.\n- **MSE** $=\\frac1n\\sum e_i^2$ - penalises large errors, mean-optimal, differentiable; **RMSE** $=\\sqrt{MSE}$ in target units.\n- **MAPE** $=\\frac{100}{n}\\sum|e_i/y_i|$ - relative, undefined at $y=0$, asymmetric; **sMAPE**, **WAPE**; **MASE** (scaled by the naive forecast - the time-series standard).\n- **RMSLE** for multiplicative/positive targets.\n- **$R^2=1-\\frac{SS_{res}}{SS_{tot}}$**; adjusted $R^2$; negative when worse than predicting the mean.\n- **Median absolute error**, **max error**, **Huber**, **pinball/quantile loss** for quantile forecasts, **explained variance**, **CRPS** for probabilistic forecasts, **prediction interval coverage**.\nChoose by the decision cost: use MAE when all errors matter linearly, RMSE when big misses are catastrophic. Always compare with a naive baseline (mean, last value, seasonal naive).\n\n**Clustering - internal validity (no labels)**\n- **Silhouette** $s=\\frac{b-a}{\\max(a,b)}\\in[-1,1]$ with $a$ = mean intra-cluster distance, $b$ = mean nearest-other-cluster distance; higher is better.\n- **Davies-Bouldin** (lower better), **Calinski-Harabasz** (variance ratio, higher better), **Dunn index**, **inertia/WCSS** for the elbow, **BIC/AIC** for mixtures, **gap statistic**, **cophenetic correlation** (hierarchical).\nConvex-biased: they favour K-Means-style clusters and mis-rate density clusters (use DBCV for density).\n\n**Clustering - external validity (labels exist)**: **Rand Index**/**Adjusted Rand Index (ARI)** (chance-corrected, 0 random, 1 perfect), **Mutual Information**, **NMI**, **AMI**, **homogeneity / completeness / V-measure**, **Fowlkes-Mallows**, **purity** (inflated by many clusters).\n\n**Stability**: re-cluster bootstrap resamples and compare with ARI; stable partitions are more believable.\n\n**Dimensionality reduction metrics**: reconstruction error, explained variance, trustworthiness/continuity, neighbourhood preservation.",
+  "tradeoffs": [
+   "RMSE vs MAE reflects whether outliers should dominate.",
+   "Internal indices are label-free but biased by cluster shape."
+  ],
+  "pitfalls": [
+   "MAPE with zeros.",
+   "Comparing R² across different targets.",
+   "Picking $k$ by silhouette alone."
+  ],
+  "interview": [
+   "MAE vs RMSE?",
+   "Why ARI instead of Rand Index?",
+   "What does negative R² mean?"
+  ],
+  "use": [
+   "Report at least two error metrics plus a naive baseline."
+  ],
+  "avoid": [
+   "Do not use accuracy-style metrics for clustering without labels."
+  ],
+  "qa": [
+   {
+    "q": "Why does MSE correspond to the mean and MAE to the median?",
+    "a": "Minimising $\\sum(y_i-c)^2$ gives $c=\\bar y$ (set derivative to zero); minimising $\\sum|y_i-c|$ is minimised at any median because moving $c$ changes the count of points on each side equally."
+   }
+  ]
+ }
+]

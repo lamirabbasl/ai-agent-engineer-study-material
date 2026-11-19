@@ -1,0 +1,282 @@
+[
+ {
+  "id": "xai-map",
+  "phase": "deep-learning",
+  "group": "10 · Explainable AI (XAI)",
+  "title": "Explainable AI map: intrinsic vs post-hoc, global vs local, model-agnostic vs specific, and how to evaluate explanations",
+  "tagline": "A taxonomy so you pick the right explainer for the question you are actually asking.",
+  "viz": "xai-lab",
+  "explain": "**Why explain?** Debugging, trust, regulation (GDPR \"right to explanation\", medical devices), fairness audits, scientific discovery, detecting spurious cues (the husky-vs-snow classifier).\n\n**Taxonomy**\n- **Intrinsic (interpretable by design)**: linear/logistic regression, decision rules and shallow trees, GAMs / Explainable Boosting Machines, rule lists, prototype networks (ProtoPNet), concept-bottleneck models, attention-as-architecture (with caveats), monotonic models.\n- **Post-hoc**: applied to a trained black box.\n- **Global** (how does the model behave overall?): permutation importance, PDP, ALE, surrogate models, global SHAP summaries, TCAV.\n- **Local** (why this prediction?): LIME, SHAP values, counterfactuals, saliency/Grad-CAM, anchors.\n- **Model-agnostic** (LIME, SHAP-kernel, PDP, permutation) vs **model-specific** (TreeSHAP, Grad-CAM, Integrated Gradients, attention rollout).\n\n**Pick by question**: \"Which features matter overall?\" → permutation importance / SHAP summary. \"How does the output change with feature $x_j$?\" → PDP/ICE/ALE. \"Why did it reject *this* applicant?\" → SHAP/LIME + **counterfactual** (\"increase income by $5k to be approved\"). \"Which pixels?\" → Grad-CAM / IG. \"What concept?\" → TCAV, probing.\n\n**Evaluating explanations**: **fidelity** (does the explanation reflect the model? deletion/insertion curves, faithfulness correlation), **stability** (similar inputs → similar explanations), **sparsity/comprehensibility**, **sanity checks** (Adebayo et al.: randomising weights should destroy the explanation - several saliency methods fail), human-subject studies, usefulness for debugging. **Caveats**: explanations describe the *model*, not causal reality; correlated features distort attributions; explanations can be manipulated (adversarial attacks on LIME/SHAP); do not use post-hoc explanations to justify high-stakes black boxes when an interpretable model is nearly as accurate (Rudin).\n\n**Reporting**: state the explainer, background data, parameters (samples, baseline), the model/data split used (explain on held-out data) and show consistency across methods.",
+  "tradeoffs": [
+   "Intrinsic models are faithful but may be less accurate; post-hoc methods approximate complex models.",
+   "Local explanations are specific but unstable; global ones are stable but coarse."
+  ],
+  "pitfalls": [
+   "Treating importances as causal effects.",
+   "Using explainers with misleading baselines/backgrounds.",
+   "Skipping sanity checks."
+  ],
+  "interview": [
+   "Global vs local explanations?",
+   "Intrinsic vs post-hoc - when each?",
+   "How do you evaluate an explanation method?"
+  ],
+  "use": [
+   "Model audits, regulated domains, debugging, scientific interpretation."
+  ],
+  "avoid": [
+   "Do not present saliency maps as proof of correct reasoning."
+  ],
+  "qa": [
+   {
+    "q": "Why can SHAP/LIME explanations mislead under correlated features?",
+    "a": "Both perturb features independently, creating unrealistic off-manifold inputs; the model's behaviour there is irrelevant, and credit gets split arbitrarily among correlated features, so attributions can be unstable or counter-intuitive."
+   }
+  ]
+ },
+ {
+  "id": "xai-shap-lime",
+  "phase": "deep-learning",
+  "group": "10 · Explainable AI (XAI)",
+  "title": "SHAP and LIME in depth: Shapley axioms, TreeSHAP/KernelSHAP/DeepSHAP, local surrogates",
+  "tagline": "The two most-cited local attribution methods: derivation, algorithms, plots and pitfalls.",
+  "viz": "xai-lab",
+  "explain": "**Shapley values (cooperative game theory).** Players = features, payout = model output. The contribution of feature $i$:\n$$\\phi_i=\\sum_{S\\subseteq F\\setminus\\{i\\}}\\frac{|S|!\\,(|F|-|S|-1)!}{|F|!}\\left[v(S\\cup\\{i\\})-v(S)\\right],$$\nthe average marginal contribution over all feature orderings. **Axioms** (uniquely satisfied): **efficiency** $\\sum\\phi_i=f(x)-\\mathbb E f(X)$, **symmetry**, **dummy**, **additivity**. The value function $v(S)$ = expected model output with features in $S$ fixed and the rest marginalised (interventional/marginal or conditional). The lab above computes exact Shapley values for a small model.\n\n**SHAP (Lundberg & Lee)** unifies explainers as an additive model $g(z')=\\phi_0+\\sum\\phi_iz_i'$.\n- **TreeSHAP**: exact polynomial-time Shapley values for tree ensembles (XGBoost, LightGBM, RF) - fast and the most used.\n- **KernelSHAP**: model-agnostic weighted linear regression over sampled coalitions with the Shapley kernel; slow, needs a background set.\n- **DeepSHAP / GradientSHAP / DeepLIFT-based**: for neural nets; **LinearSHAP**; **PartitionSHAP** for text/image hierarchies.\n- **Plots**: force plot (one prediction), **beeswarm summary** (global importance + effect direction), bar plot of mean |φ|, dependence plot (φ vs feature, coloured by interaction), waterfall. **SHAP interaction values** for pairwise effects.\nCaveats: expensive (exponential coalitions → approximations), background-data dependence, correlated features, interventional vs observational semantics, not causal.\n\n**LIME (Local Interpretable Model-agnostic Explanations).** Around instance $x$: sample perturbations $z$ (tabular: Gaussian noise; text: remove words; images: switch off **superpixels**), weigh them by proximity $\\pi_x(z)=\\exp(-D(x,z)^2/\\sigma^2)$, query the black box, and fit a sparse **linear surrogate** $g$ minimising $\\sum\\pi_x(z)(f(z)-g(z))^2+\\Omega(g)$ (K-lasso). Coefficients are the explanation.\nStrengths: simple, works for text/images/tabular. Weaknesses: **unstable** across runs, sensitive to kernel width and perturbation scheme, local fidelity not guaranteed, can be fooled adversarially.\n\n**Choosing**: tree models → TreeSHAP; deep nets → IG/GradientSHAP/DeepSHAP; any black box with few features → KernelSHAP; need a quick, intuitive text/image explanation → LIME (check stability, repeat with seeds). **Anchors** give high-precision IF-THEN rules.\n\n```python\nimport shap\nexplainer = shap.TreeExplainer(model)\nsv = explainer.shap_values(X_test)       # n × d attributions\nshap.summary_plot(sv, X_test)            # global beeswarm\nshap.force_plot(explainer.expected_value, sv[0], X_test.iloc[0])\n```",
+  "tradeoffs": [
+   "SHAP has theoretical guarantees but is costly; LIME is quick but unstable.",
+   "Interventional SHAP respects the model; conditional SHAP respects the data distribution - they answer different questions."
+  ],
+  "pitfalls": [
+   "Explaining on training data only.",
+   "Huge background sets making KernelSHAP intractable.",
+   "Sum of SHAP values interpreted in probability space for a log-odds model."
+  ],
+  "interview": [
+   "State the Shapley axioms.",
+   "Why does TreeSHAP run in polynomial time?",
+   "LIME vs SHAP trade-offs?"
+  ],
+  "use": [
+   "Credit scoring, healthcare risk models, model debugging, feature audits."
+  ],
+  "avoid": [
+   "Don't use KernelSHAP on hundreds of features without sampling limits."
+  ],
+  "qa": [
+   {
+    "q": "What does the efficiency axiom imply?",
+    "a": "The attributions add up exactly to the difference between the prediction and the baseline expectation, so the explanation fully accounts for the output."
+   }
+  ]
+ },
+ {
+  "id": "xai-pdp-gradcam",
+  "phase": "deep-learning",
+  "group": "10 · Explainable AI (XAI)",
+  "title": "Feature-effect and visual XAI: Permutation importance, PDP, ICE, ALE, Grad-CAM, Integrated Gradients, counterfactuals",
+  "tagline": "Global effect plots for tabular models and attribution maps for deep networks.",
+  "viz": "xai-lab",
+  "explain": "**Permutation importance.** Shuffle one feature on held-out data; the drop in score = importance. Model-agnostic, uses the metric you care about; correlated features split or hide importance; compute on validation data, repeat to get variance.\n\n**Partial Dependence Plot (PDP).** $\\hat f_S(x_S)=\\mathbb E_{X_C}[f(x_S,X_C)]\\approx\\frac1n\\sum_if(x_S,x_C^{(i)})$ - the average effect of feature(s) $S$ after marginalising the others. Reveals monotonic/non-linear/threshold effects, 2-D PDPs show interactions. Assumes independence between $S$ and $C$; averaging can hide heterogeneity.\n\n**ICE (Individual Conditional Expectation).** One curve per instance (PDP is their average); diverging curves reveal interactions/heterogeneity; centre curves at a baseline (c-ICE).\n\n**ALE (Accumulated Local Effects).** Average the **local** changes in prediction within narrow bins of $x_j$ using only the *conditional* distribution (real neighbours), then accumulate: $\\mathrm{ALE}_j(x)=\\int_{z_0}^x\\mathbb E\\left[\\frac{\\partial f}{\\partial x_j}\\Big|X_j=z\\right]dz$. Unbiased under correlated features and faster than PDP - prefer it when features correlate.\n\n**Counterfactual explanations.** The smallest change to $x$ that flips the decision: $\\min_{x'}d(x,x')\\ \\text{s.t.}\\ f(x')=y'$ (Wachter), with **actionability** (cannot change age), **plausibility** (stay on the data manifold), **sparsity** and **diversity** (DiCE). Recourse for loan denials; counterfactuals can be unstable and ignore causal dependencies.\n\n**Saliency for deep nets**\n- **Vanilla gradient / saliency**: $|\\partial f_c/\\partial x|$ - noisy, saturates.\n- **SmoothGrad**: average over noisy copies. **Gradient × input**, **DeepLIFT**, **LRP** (layer-wise relevance propagation).\n- **Integrated Gradients (IG)**: $\\mathrm{IG}_i=(x_i-x_i')\\int_0^1\\frac{\\partial f(x'+\\alpha(x-x'))}{\\partial x_i}d\\alpha$ along a path from a **baseline** $x'$; satisfies **completeness** (sum = $f(x)-f(x')$) and **sensitivity**; approximate with 20-300 Riemann steps. Baseline choice (black image, blur, noise) matters.\n- **CAM / Grad-CAM**: weights $\\alpha_k^c=\\frac1Z\\sum_{ij}\\frac{\\partial y^c}{\\partial A^k_{ij}}$ for the last conv feature maps, $L^c=\\mathrm{ReLU}(\\sum_k\\alpha_k^cA^k)$ upsampled to the image - coarse class-discriminative heat-map; Grad-CAM++, Score-CAM, LayerCAM, **attention rollout** and **Chefer et al.** relevance for ViTs.\n- **Concept-based**: **TCAV** (sensitivity to human concepts), network dissection, probing classifiers, sparse autoencoders for LLMs.\n- **Sanity checks**: model-parameter randomisation and data-randomisation tests; deletion/insertion AUC for faithfulness; pointing game against segmentation masks.\n\n**Medical/safety use**: always show Grad-CAM alongside confusion analysis, not as proof; verify the model isn't using scanner markers or text overlays.",
+  "tradeoffs": [
+   "PDP is easy but assumes independence; ALE handles correlation but is harder to explain.",
+   "Gradient-based saliency is cheap but noisy; IG is principled but baseline-dependent."
+  ],
+  "pitfalls": [
+   "Reading PDP in regions with no data.",
+   "Accepting saliency maps without sanity checks.",
+   "Counterfactuals that require impossible changes."
+  ],
+  "interview": [
+   "PDP vs ALE?",
+   "State IG's completeness axiom.",
+   "How does Grad-CAM produce a heat-map?"
+  ],
+  "use": [
+   "Reporting effects of features in tabular models; verifying CNN attention on the right region."
+  ],
+  "avoid": [
+   "Don't treat Grad-CAM localisation as segmentation accuracy."
+  ],
+  "qa": [
+   {
+    "q": "Why prefer ALE with correlated features?",
+    "a": "PDP averages over the marginal distribution, creating combinations of feature values that never occur (e.g. 2-metre-tall child). ALE only evaluates differences between nearby real points within bins, so it stays on the data manifold."
+   }
+  ]
+ },
+ {
+  "id": "adv-robustness",
+  "phase": "deep-learning",
+  "group": "11 · Advanced research topics",
+  "title": "Adversarial examples and robust ML: FGSM, PGD, adversarial training, certified robustness, poisoning and privacy attacks",
+  "tagline": "Models are brittle: how to attack, how to defend, and how to evaluate honestly.",
+  "viz": "softmax-lab",
+  "explain": "**Adversarial examples.** Small, often imperceptible perturbations $\\delta$ with $\\|\\delta\\|_p\\le\\epsilon$ change predictions: $\\max_\\delta\\mathcal L(f(x+\\delta),y)$. Cause: high-dimensional linearity (Goodfellow), non-robust yet predictive features (Ilyas et al.), large Lipschitz constants.\n\n**White-box attacks**: **FGSM** $x'=x+\\epsilon\\,\\mathrm{sign}(\\nabla_x\\mathcal L)$; **BIM/PGD** iterated steps with projection onto the $\\epsilon$-ball (+ random start) - the standard strong first-order attack; **C&W** (optimisation-based, minimal perturbation), **AutoAttack** (ensemble of parameter-free attacks, the benchmark standard), DeepFool; $\\ell_0$ (sparse pixel), $\\ell_2$, $\\ell_\\infty$ threat models; **black-box**: transfer attacks, query-based (NES, Square Attack), decision-based (Boundary Attack); **physical**: patches, stickers, 3-D objects; **text/audio** attacks (synonym swaps, jailbreak suffixes, prompt injection for LLMs).\n\n**Defences**\n- **Adversarial training** (Madry): $\\min_\\theta\\mathbb E\\max_{\\|\\delta\\|\\le\\epsilon}\\mathcal L$ - the most reliable empirical defence; costs ~$k$× compute, reduces clean accuracy; TRADES balances accuracy/robustness; fast AT, free AT; data augmentation with generated data boosts robust accuracy.\n- **Certified robustness**: **randomised smoothing** (classify the majority under Gaussian noise; certified $\\ell_2$ radius $\\sigma\\Phi^{-1}(p_A)$), interval bound propagation, Lipschitz-constrained networks.\n- Input preprocessing, detection, distillation, ensemble diversity - repeatedly broken by **adaptive attacks** (gradient masking, obfuscated gradients).\n\n**Evaluation hygiene**: state the threat model (norm, ε, knowledge), test with adaptive attacks and AutoAttack, report robust accuracy vs ε curves, beware gradient masking (check that black-box ≤ white-box success, loss surfaces are smooth).\n\n**Other threats**: **data poisoning/backdoors** (trojan triggers), **model extraction/stealing**, **membership inference**, **model inversion**, **prompt injection/jailbreaks** for LLMs, **distribution-shift robustness** (corruptions: ImageNet-C, WILDS), **out-of-distribution detection** (max-softmax, energy, Mahalanobis).\n\n**Robustness ≠ only security**: robust features are more interpretable; robustness-accuracy trade-offs; certification for safety-critical deployments.",
+  "tradeoffs": [
+   "Adversarial training buys robustness at lower clean accuracy and higher cost.",
+   "Certified methods give guarantees but for small radii."
+  ],
+  "pitfalls": [
+   "Evaluating defences only against non-adaptive attacks.",
+   "Gradient masking mistaken for robustness.",
+   "Using a single ε and a single norm."
+  ],
+  "interview": [
+   "How does PGD differ from FGSM?",
+   "What is randomised smoothing?",
+   "Why do defences get broken by adaptive attacks?"
+  ],
+  "use": [
+   "Security-critical vision/NLP, safety assurance, red-teaming LLMs."
+  ],
+  "avoid": [
+   "Don't claim robustness from FGSM-only evaluation."
+  ],
+  "qa": [
+   {
+    "q": "Why does FGSM work with tiny ε?",
+    "a": "In high dimension, a perturbation of size ε in every coordinate aligned with the gradient sign changes the linear response by $\\epsilon\\|w\\|_1$, which grows with dimension, so imperceptible per-pixel changes accumulate into a large logit shift."
+   }
+  ]
+ },
+ {
+  "id": "adv-domain-fewshot",
+  "phase": "deep-learning",
+  "group": "11 · Advanced research topics",
+  "title": "Domain adaptation, domain generalisation, few-shot and zero-shot learning",
+  "tagline": "What to do when test data differs from training data or labels barely exist.",
+  "viz": null,
+  "explain": "**Distribution shift types**: covariate shift ($P(x)$ changes, $P(y|x)$ same), label/prior shift ($P(y)$ changes), concept shift ($P(y|x)$ changes), subpopulation shift. Bound (Ben-David): $\\epsilon_T\\le\\epsilon_S+\\tfrac12d_{\\mathcal H\\Delta\\mathcal H}(S,T)+\\lambda$ - target error ≤ source error + domain divergence + joint-optimal error.\n\n**Domain adaptation (DA)** - target domain available (unlabeled or few labels) during training.\n- **Discrepancy-based**: minimise MMD (DAN), CORAL (match covariances), optimal transport.\n- **Adversarial**: **DANN** - a domain classifier with a **gradient reversal layer** forces domain-invariant features; CycleGAN-style pixel-level translation (CyCADA); **ADDA**.\n- **Self-training / pseudo-labels**, entropy minimisation, test-time adaptation (**TENT**, BN-statistic adaptation), source-free DA, importance weighting for covariate shift, fine-tuning with few target labels.\n**Domain generalisation (DG)** - no target data at training. Methods: **ERM done right** (strong baseline, DomainBed shows it is hard to beat), domain-invariant learning (**IRM**, CORAL, MMD across multiple source domains), **group DRO**, data augmentation/style mixing (MixStyle), meta-learning (MLDG), ensembling and weight averaging (SWAD), foundation-model features.\n\n**Few-shot learning (FSL)**: classify with $K$ examples per class ($N$-way $K$-shot). Approaches: **metric learning** (prototypical, matching, relation networks), **meta-learning/MAML**, **fine-tuning a pretrained model** (a strong baseline: \"A closer look at few-shot classification\"), **data augmentation/hallucination**, **self-supervised pretraining**, **in-context learning** with LLMs, **parameter-efficient adaptation** (LoRA, prompt tuning, adapters). Report accuracy with 95% CI over thousands of episodes.\n\n**Zero-shot learning (ZSL)**: recognise unseen classes using auxiliary semantic descriptions (attributes, word embeddings, text). **CLIP**: contrastive image-text pretraining enables zero-shot classification by comparing image embeddings with text embeddings of \"a photo of a {class}\"; generalised ZSL evaluates seen + unseen classes (bias toward seen classes: calibrated stacking). LLM zero-shot prompting is the same idea in language.\n\n**Evaluation**: leave-one-domain-out protocols, worst-group accuracy (not just average), WILDS/DomainBed benchmarks, fair model selection (no target-domain validation peeking - an oracle selection inflates results).",
+  "tradeoffs": [
+   "Alignment methods help only when the shift is moderate and labelling functions overlap.",
+   "Foundation models often make few-/zero-shot strong baselines that complex methods fail to beat."
+  ],
+  "pitfalls": [
+   "Selecting hyper-parameters on target labels in DG claims.",
+   "Reporting average over domains hiding the worst case.",
+   "Negative transfer."
+  ],
+  "interview": [
+   "What does the gradient reversal layer do?",
+   "DA vs DG?",
+   "How does CLIP do zero-shot classification?"
+  ],
+  "use": [
+   "Medical multi-centre studies, sensors/devices, sim-to-real, low-resource languages."
+  ],
+  "avoid": [
+   "Don't build complex adaptation before measuring the shift and testing simple fine-tuning."
+  ],
+  "qa": [
+   {
+    "q": "How does DANN produce domain-invariant features?",
+    "a": "A discriminator tries to predict domain from features while a gradient-reversal layer flips its gradient for the feature extractor, so the extractor learns features that confuse the discriminator yet remain useful for the source task."
+   }
+  ]
+ },
+ {
+  "id": "adv-multitask-label",
+  "phase": "deep-learning",
+  "group": "11 · Advanced research topics",
+  "title": "Multi-task, multi-label and multi-objective learning, plus contrastive and self-supervised learning in practice",
+  "tagline": "Sharing representations across tasks and labels, balancing gradients, and learning from structure without labels.",
+  "viz": null,
+  "explain": "**Multi-task learning (MTL).** Train one model on several tasks: **hard parameter sharing** (shared trunk + task heads) acts as regularisation; **soft sharing** (cross-stitch, MMoE, adapters) lets tasks borrow selectively. Gains when tasks are related and data are scarce; **negative transfer** when they conflict.\nLoss balancing: weighted sum $\\sum w_t\\mathcal L_t$ with **uncertainty weighting** ($\\mathcal L_t/2\\sigma_t^2+\\log\\sigma_t$), **GradNorm** (equalise gradient magnitudes), **DWA**, **PCGrad / CAGrad / MGDA** (resolve gradient conflicts by projection/Pareto-optimal direction). Auxiliary tasks (depth, segmentation as help for detection; masked-LM as help for downstream). LLM instruction tuning is MTL at scale.\n\n**Multi-label classification.** Each sample has a **set** of labels (not mutually exclusive): use **sigmoid + binary cross-entropy** per label (not softmax), per-label thresholds. Strategies: binary relevance, classifier chains (model label dependencies), label powerset, **ML-KNN**, tree/boosting ensembles, label-embedding and graph-based models (ML-GCN). Handle imbalance with weighted/focal/asymmetric loss. Metrics: Hamming loss, subset accuracy (strict), micro/macro-F1, mAP, ranking loss, coverage. **Extreme multi-label** (millions of labels: tree/embedding methods).\n\n**Multi-objective learning.** Trade off accuracy vs fairness/latency/robustness/calibration: scalarisation, Pareto-front learning (hypernetworks produce a model per preference), constrained optimisation (Lagrangian), see the multi-objective optimisation concept.\n\n**Self-supervised and contrastive learning in practice.** Create supervision from data: **contrastive** (SimCLR: two augmentations of an image are positives, others negatives, **InfoNCE** loss $-\\log\\frac{e^{s(z_i,z_j)/\\tau}}{\\sum_ke^{s(z_i,z_k)/\\tau}}$; MoCo with a momentum queue; CLIP aligns images and text), **non-contrastive** (BYOL, SimSiam, DINO: predictor + stop-gradient/EMA avoids collapse; VICReg regularises variance/covariance), **masked modelling** (BERT, MAE), **generative/predictive** (GPT, JEPA). Practicalities: strong augmentations are the \"labels\", large batches/queues for negatives, temperature τ, projection heads discarded after pretraining, linear-probe and fine-tune evaluation, collapse monitoring (embedding std). Time-series (TS2Vec, TS-TCC), graph (GraphCL), tabular (SCARF), audio (wav2vec 2.0) variants.\n\n**Deep-research tip**: when proposing multi-task or SSL methods, ablate (a) single-task baselines, (b) loss weights, (c) augmentation choices, and (d) the amount of labelled data (low-label regime is where SSL shines).",
+  "tradeoffs": [
+   "Shared representations improve data efficiency but gradient conflicts can hurt every task.",
+   "Contrastive learning needs good augmentations/negatives; non-contrastive methods risk collapse."
+  ],
+  "pitfalls": [
+   "Softmax for multi-label targets.",
+   "Equal loss weights with differently scaled losses.",
+   "SSL evaluated only with fine-tuning (hides representation quality)."
+  ],
+  "interview": [
+   "What is negative transfer?",
+   "How does PCGrad help?",
+   "InfoNCE - what does temperature do?"
+  ],
+  "use": [
+   "Multi-attribute prediction, recommender towers, medical coding, representation pretraining with few labels."
+  ],
+  "avoid": [
+   "Don't force MTL on unrelated tasks to claim 'unified' models."
+  ],
+  "qa": [
+   {
+    "q": "Why sigmoid instead of softmax for multi-label?",
+    "a": "Softmax forces probabilities to sum to 1 (labels compete); multi-label outputs are independent presence/absence events, so each label needs its own sigmoid and BCE."
+   }
+  ]
+ },
+ {
+  "id": "adv-pinn-sciml",
+  "phase": "deep-learning",
+  "group": "11 · Advanced research topics",
+  "title": "Physics-informed neural networks, neural ODEs and scientific machine learning",
+  "tagline": "Embed differential equations and symmetries into learning when data are scarce but physics is known.",
+  "viz": "backprop-lab",
+  "explain": "**PINNs.** Approximate the solution $u(x,t)$ of a PDE $\\mathcal N[u]=0$ with a network $u_\\theta(x,t)$. Loss $=\\mathcal L_{data}+\\lambda_r\\mathcal L_{PDE}+\\lambda_b\\mathcal L_{BC/IC}$ where the **residual** $\\mathcal L_{PDE}=\\frac1N\\sum\\|\\mathcal N[u_\\theta](x_i,t_i)\\|^2$ is evaluated at **collocation points** using **automatic differentiation** for $\\partial_t u,\\partial_{xx}u$ etc. Examples: Burgers, Navier-Stokes, heat/wave, Schrödinger. Use for **forward** problems (solve), **inverse** problems (infer unknown coefficients/parameters from sparse measurements) and data assimilation.\nDifficulties: **loss balancing** (stiff gradients; adaptive weights, NTK-based), spectral bias (hard to fit high frequencies; Fourier features), difficulty with chaotic/long-time dynamics (causal training, time marching), activation smoothness (tanh/sin), hard constraints (build boundary conditions into the ansatz), domain decomposition (XPINN), residual-based adaptive sampling. Compared with FEM/FVM: PINNs are mesh-free and flexible but usually less accurate/efficient on well-posed forward problems - their strength is inverse/noisy/high-dimensional settings.\n\n**Neural operators.** Learn the **map between function spaces** (initial conditions/parameters → solution) once and evaluate for new inputs in milliseconds: **DeepONet** (branch + trunk nets), **Fourier Neural Operator (FNO)** (spectral convolution in Fourier space, resolution-invariant), graph/transformer operators (GNO, Galerkin transformer), weather models (FourCastNet, GraphCast, Pangu).\n\n**Neural ODEs & friends.** Continuous-depth models $\\frac{dh}{dt}=f_\\theta(h,t)$ solved with ODE solvers; backprop via the **adjoint method** (constant memory). **Continuous normalising flows**, **neural SDEs**, **Neural CDEs** for irregularly sampled time series, **Hamiltonian/Lagrangian neural networks** (energy-conserving), **symplectic integrators**, **SINDy** (sparse regression discovers equations from data), **universal differential equations** (known physics + neural residual). **Equivariant networks** (SE(3), E(n)) bake in symmetries for molecules and fields.\n\n**Applications**: fluid dynamics, climate/weather, materials and molecular dynamics (ML potentials), AlphaFold-style structure prediction, medical physics, surrogate modelling and PDE-constrained design/uncertainty quantification.\n\n**Evaluation**: compare with a numerical solver on error norms ($L_2$ relative error), report training/inference cost, test OOD (different parameters/boundary conditions) and ablate the physics loss; document the collocation strategy and loss weights.",
+  "tradeoffs": [
+   "Physics priors reduce data needs and improve extrapolation but make optimisation harder.",
+   "Neural operators are fast after training but need many simulated training pairs."
+  ],
+  "pitfalls": [
+   "Unbalanced loss terms: model fits PDE but ignores boundaries (or reverse).",
+   "Claiming speed-up over solvers without matched-accuracy comparison.",
+   "Training only on in-distribution parameters."
+  ],
+  "interview": [
+   "How does a PINN compute derivatives of the network?",
+   "FNO vs DeepONet?",
+   "What is the adjoint method?"
+  ],
+  "use": [
+   "Inverse problems with sparse sensors, fast surrogates, physics-constrained learning."
+  ],
+  "avoid": [
+   "Don't replace a validated numerical solver for a well-posed forward problem without evidence."
+  ],
+  "qa": [
+   {
+    "q": "Why use automatic differentiation in PINNs?",
+    "a": "The residual requires exact derivatives of the network output with respect to its *inputs* (space/time); autodiff provides them to machine precision, avoiding finite-difference truncation error and mesh dependence."
+   }
+  ]
+ },
+ {
+  "id": "adv-uq-bayesian",
+  "phase": "deep-learning",
+  "group": "11 · Advanced research topics",
+  "title": "Uncertainty quantification and Bayesian deep learning: aleatoric vs epistemic, ensembles, MC dropout, Laplace, conformal prediction, calibration",
+  "tagline": "Make a network say 'I don't know' - and verify its confidence is trustworthy.",
+  "viz": "kl-lab",
+  "explain": "**Two uncertainties.** **Aleatoric** (irreducible data noise; may be heteroscedastic; model by predicting variance: Gaussian NLL $\\frac{(y-\\mu)^2}{2\\sigma^2}+\\frac12\\log\\sigma^2$) and **epistemic** (model uncertainty from limited data/knowledge; shrinks with more data; high on out-of-distribution inputs). Total predictive variance $\\approx\\mathbb E[\\sigma^2]+\\mathrm{Var}[\\mu]$.\n\n**Bayesian neural networks (BNNs).** Place a prior on weights, compute the posterior $p(\\theta|D)$, predict by marginalising $p(y|x,D)=\\int p(y|x,\\theta)p(\\theta|D)d\\theta$. Exact inference is intractable; approximations:\n- **Variational inference**: Bayes-by-Backprop (mean-field Gaussians with the reparameterisation trick), flipout, noisy-Adam.\n- **MC Dropout** (Gal & Ghahramani): keep dropout on at test time, average $T$ stochastic passes; variance = epistemic proxy; cheap but crude.\n- **Deep ensembles** (Lakshminarayanan): train $M$ networks from different random inits - often the **strongest and most reliable** practical baseline for UQ and OOD detection.\n- **Laplace approximation** (Gaussian around the MAP using Hessian/Fisher: KFAC-Laplace, last-layer Laplace - post-hoc and cheap), **SWAG** (Gaussian over SGD iterates), **MCMC/SGHMC/SGLD**, **hypernetworks**, **evidential deep learning** (Dirichlet outputs), **GP/neural-process** models, **spectral-normalised GPs (SNGP/DUQ)**.\n\n**Calibration.** A model is calibrated if among predictions with confidence $p$, a fraction $p$ are correct. Measures: **ECE** (binned |accuracy − confidence|), reliability diagram, NLL, Brier score. Modern nets are over-confident; fixes: **temperature scaling** (single parameter $T$ on logits, fit on validation), Platt/isotonic/beta calibration, label smoothing, mixup, ensembles. Calibration under distribution shift degrades.\n\n**Conformal prediction.** A distribution-free wrapper giving **finite-sample coverage guarantees**: with a calibration set compute nonconformity scores $s_i$ (e.g. $|y_i-\\hat y_i|$ or $1-p_{y_i}$); the $\\lceil(n+1)(1-\\alpha)\\rceil/n$ quantile $\\hat q$ defines prediction intervals/sets $\\{y:s(x,y)\\le\\hat q\\}$ with coverage $\\ge1-\\alpha$ under exchangeability. Variants: **CQR** (quantile-regression-based adaptive intervals), **APS/RAPS** (classification sets), **Mondrian** (class-conditional), **adaptive conformal** for time series. Combine with any model.\n\n**Uses**: selective prediction / abstention, active learning, OOD detection, safe RL, medical decision support, scientific surrogates. **Evaluation**: proper scoring rules (NLL, CRPS), coverage and interval width, AUROC for OOD, risk-coverage curves.",
+  "tradeoffs": [
+   "Ensembles are accurate but multiply cost; MC dropout is cheap but under-dispersed; conformal gives guarantees but marginal rather than conditional coverage.",
+   "Full BNNs are principled but hard to scale."
+  ],
+  "pitfalls": [
+   "Treating softmax confidence as epistemic uncertainty.",
+   "Calibrating on the test set.",
+   "Conformal calibration data not exchangeable with test (drift)."
+  ],
+  "interview": [
+   "Aleatoric vs epistemic?",
+   "Explain temperature scaling.",
+   "What does conformal prediction guarantee?"
+  ],
+  "use": [
+   "Healthcare, finance, autonomous systems, active learning, scientific ML."
+  ],
+  "avoid": [
+   "Don't report uncertainty bars without checking calibration/coverage."
+  ],
+  "qa": [
+   {
+    "q": "Why are deep ensembles good at epistemic uncertainty?",
+    "a": "Independently initialised networks converge to different modes of the loss landscape; they agree where the data constrain the function and disagree elsewhere, so their predictive variance grows away from the training data."
+   }
+  ]
+ }
+]

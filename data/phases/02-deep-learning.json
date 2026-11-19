@@ -226,6 +226,151 @@
       ]
     },
     {
+      "id": "generative-models",
+      "title": "Autoencoders and generative models",
+      "summary": "AE variants, VAE, GAN family and diffusion models.",
+      "items": [
+        "Autoencoder, undercomplete, sparse, denoising, contractive, convolutional, masked autoencoders",
+        "Anomaly detection with reconstruction error",
+        "VAE: ELBO, reparameterisation, beta-VAE, VQ-VAE, posterior collapse",
+        "GAN minimax game, non-saturating loss, mode collapse",
+        "DCGAN, cGAN, Pix2Pix, CycleGAN, WGAN/WGAN-GP, StyleGAN",
+        "Evaluation: FID, Inception Score, precision/recall for generative models",
+        "DDPM forward and reverse processes, noise-prediction loss, noise schedules",
+        "DDIM, score matching, SDE view, flow matching",
+        "Latent diffusion, Stable Diffusion, ControlNet, classifier-free guidance"
+      ],
+      "questions": [
+        "Derive the VAE ELBO.",
+        "Why predict noise in DDPM?",
+        "How does CycleGAN train without paired data?"
+      ],
+      "resources": [
+        "Lilian Weng: What are diffusion models?",
+        "Stanford CS236",
+        "Ho et al. DDPM (2020)"
+      ]
+    },
+    {
+      "id": "nlp-tasks",
+      "title": "Natural language processing",
+      "summary": "Classical NLP, embeddings, task formulations and the LLM/RAG/PEFT toolbox.",
+      "items": [
+        "Tokenisation, stemming, lemmatisation, stop words, n-grams",
+        "Bag-of-Words, TF-IDF, BM25, topic models",
+        "word2vec, GloVe, fastText",
+        "Text classification, sentiment, NER, POS tagging",
+        "Machine translation, summarisation, question answering",
+        "BERT-family fine-tuning, T5/BART, decoder-only LLMs",
+        "Prompting, RAG, PEFT (LoRA/QLoRA), instruction tuning",
+        "NLP metrics: BLEU, ROUGE, entity-level F1, BERTScore"
+      ],
+      "questions": [
+        "TF-IDF formula and intuition?",
+        "How do you fine-tune BERT for NER?",
+        "RAG vs fine-tuning?"
+      ],
+      "resources": [
+        "Stanford CS224N",
+        "Speech and Language Processing (Jurafsky & Martin)"
+      ]
+    },
+    {
+      "id": "vision-tasks",
+      "title": "Computer-vision tasks and CNN architecture zoo",
+      "summary": "From LeNet to ConvNeXt, and every common vision task.",
+      "items": [
+        "LeNet, AlexNet, VGG, GoogLeNet/Inception, ResNet, DenseNet, MobileNet, EfficientNet, Xception, ConvNeXt",
+        "Depthwise-separable and dilated convolutions, global average pooling, attention in CNNs",
+        "Image restoration: denoising, deblurring, inpainting, super-resolution",
+        "Face detection and recognition (ArcFace), medical imaging pitfalls",
+        "Video and action recognition, optical flow (RAFT)",
+        "Object detection, segmentation, pose, depth, OCR"
+      ],
+      "questions": [
+        "Why do residual connections help?",
+        "How does ArcFace improve embeddings?"
+      ],
+      "resources": [
+        "Stanford CS231n",
+        "Papers With Code vision leaderboards"
+      ]
+    },
+    {
+      "id": "time-series-dl",
+      "title": "Time-series analysis with deep learning",
+      "summary": "Classical foundations, deep forecasters, anomaly and change-point detection.",
+      "items": [
+        "Trend, seasonality, decomposition (STL)",
+        "Stationarity, ADF/KPSS tests, differencing",
+        "ACF/PACF, AR/MA/ARIMA/SARIMA, exponential smoothing",
+        "RNN/LSTM/GRU/CNN/TCN forecasters, DeepAR, N-BEATS",
+        "Transformers: Informer, Autoformer, FEDformer, PatchTST, TFT",
+        "Walk-forward validation, MASE/sMAPE, naive baselines",
+        "Anomaly detection (forecast residual, reconstruction, matrix profile)",
+        "Change-point detection: CUSUM, PELT, Bayesian online CPD"
+      ],
+      "questions": [
+        "How do you choose ARIMA orders from ACF/PACF?",
+        "Why can DLinear beat Transformers on some benchmarks?"
+      ],
+      "resources": [
+        "Forecasting: Principles and Practice (Hyndman)",
+        "Time Series Library (THUML)"
+      ]
+    },
+    {
+      "id": "hybrid-xai",
+      "title": "Hybrid ML-DL models and Explainable AI",
+      "summary": "Design defensible hybrids and explain them.",
+      "items": [
+        "CNN-LSTM/GRU/BiLSTM, CNN-Transformer, attention hybrids",
+        "Autoencoder + XGBoost, PCA + SVM, wavelet/EMD + deep nets (leakage risks)",
+        "Ensembles, stacking, early/intermediate/late fusion, multimodal learning",
+        "Ablation design for hybrids",
+        "Intrinsic vs post-hoc, global vs local, model-agnostic vs specific XAI",
+        "Permutation importance, PDP, ICE, ALE",
+        "SHAP (TreeSHAP/KernelSHAP) and LIME",
+        "Grad-CAM, Integrated Gradients, counterfactual explanations, sanity checks"
+      ],
+      "questions": [
+        "How would you prove each block of a hybrid matters?",
+        "PDP vs ALE?",
+        "State the Shapley axioms."
+      ],
+      "resources": [
+        "Interpretable ML (Molnar)",
+        "SHAP documentation",
+        "Captum (PyTorch)"
+      ]
+    },
+    {
+      "id": "advanced-research-topics",
+      "title": "Advanced research topics",
+      "summary": "Robustness, shift, multi-task, physics-informed ML and uncertainty.",
+      "items": [
+        "Adversarial attacks (FGSM, PGD) and adversarial training, certified robustness",
+        "Domain adaptation and domain generalisation (DANN, IRM, DomainBed)",
+        "Few-shot and zero-shot learning (prototypical nets, CLIP)",
+        "Multi-task, multi-label and multi-objective learning (GradNorm, PCGrad)",
+        "Contrastive and self-supervised learning (SimCLR, BYOL, MAE)",
+        "Physics-informed neural networks, neural operators, neural ODEs",
+        "Uncertainty quantification: ensembles, MC dropout, Laplace, conformal prediction",
+        "Calibration: temperature scaling, ECE",
+        "Graph neural networks, federated learning, NAS (see other concepts)"
+      ],
+      "questions": [
+        "Why do defences get broken by adaptive attacks?",
+        "Explain conformal prediction guarantees.",
+        "How does a PINN compute its residual?"
+      ],
+      "resources": [
+        "RobustBench",
+        "DomainBed",
+        "Conformal Prediction tutorial (Angelopoulos & Bates)"
+      ]
+    },
+    {
       "id": "dl-research",
       "title": "Research practice in deep learning",
       "summary": "Interpretability, robustness, experiment design, writing and publishing.",

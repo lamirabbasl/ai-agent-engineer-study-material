@@ -1,0 +1,278 @@
+[
+ {
+  "id": "dl-autoencoders",
+  "phase": "deep-learning",
+  "group": "6 · Generative models",
+  "title": "Autoencoders: undercomplete, sparse, denoising, contractive, convolutional and anomaly detection",
+  "tagline": "Learn compressed representations by reconstructing the input; each variant adds a different regulariser.",
+  "viz": "pca-lab",
+  "explain": "**Basic autoencoder (AE).** Encoder $z=f_\\phi(x)$ and decoder $\\hat x=g_\\theta(z)$ trained to minimise reconstruction loss $\\|x-\\hat x\\|^2$ (MSE for continuous, cross-entropy for binary/pixels). With a **linear** encoder/decoder and MSE the optimum spans the PCA subspace; non-linear AEs learn curved manifolds.\n\n**Undercomplete AE**: bottleneck $\\dim z<\\dim x$ forces compression. **Overcomplete** AEs need regularisation or they learn the identity.\n\n**Regularised variants**\n- **Sparse AE**: penalty $\\lambda\\sum_j\\mathrm{KL}(\\rho\\|\\hat\\rho_j)$ or $\\ell_1$ on activations; few neurons fire - parts-based features, interpretability (modern sparse autoencoders disentangle LLM features).\n- **Denoising AE (DAE)**: corrupt the input $\\tilde x=x+\\varepsilon$ (Gaussian noise, masking/dropout) and reconstruct the *clean* $x$; learns the data manifold and implicitly the score $\\nabla\\log p(x)$ (ties to diffusion models).\n- **Contractive AE (CAE)**: penalise the Jacobian norm $\\lambda\\|\\partial f/\\partial x\\|_F^2$ so the code is locally invariant to small perturbations.\n- **Convolutional AE**: conv/pool encoder, transposed-conv/upsample decoder; for images and spectrograms. U-Net-style skip connections keep detail.\n- **Stacked / deep AE**, **sequence AEs** (LSTM/Transformer), **masked AE (MAE)**: mask 75% of image patches and reconstruct - a state-of-the-art self-supervised pretraining.\n- **Variational AE** and **VQ-VAE** (next concept) make the latent space generative.\n\n**Uses**: dimensionality reduction/visualisation, denoising and inpainting, pre-training, feature learning for downstream classifiers (e.g. AE + XGBoost hybrids), recommender embeddings, compression, **anomaly detection**.\n\n**Anomaly detection with AEs.** Train on normal data only; at test time the reconstruction error $\\|x-\\hat x\\|^2$ is the anomaly score; threshold at a high percentile of validation errors. Pitfalls: powerful AEs reconstruct anomalies too (identity shortcut) - restrict the bottleneck, use denoising, or per-feature error normalisation; threshold choice; drift. Alternatives: Deep SVDD, VAE likelihood, memory-augmented AEs, flow-based density.\n\n```python\nclass AE(nn.Module):\n    def __init__(s, d, k=16):\n        super().__init__()\n        s.enc = nn.Sequential(nn.Linear(d,128), nn.ReLU(), nn.Linear(128,k))\n        s.dec = nn.Sequential(nn.Linear(k,128), nn.ReLU(), nn.Linear(128,d))\n    def forward(s, x): return s.dec(s.enc(x))\nloss = F.mse_loss(model(x_noisy), x_clean)   # denoising AE\n```",
+  "tradeoffs": [
+   "Unsupervised, simple and flexible; but reconstruction ≠ semantic usefulness.",
+   "Strong capacity memorises (including anomalies); tight bottleneck loses detail."
+  ],
+  "pitfalls": [
+   "Evaluating anomaly detection on contaminated 'normal' training data.",
+   "Choosing the threshold on test data.",
+   "Blurry reconstructions mistaken for poor features."
+  ],
+  "interview": [
+   "How is a linear AE related to PCA?",
+   "Why does a denoising AE learn useful features?",
+   "How do you threshold AE reconstruction error?"
+  ],
+  "use": [
+   "Unsupervised pretraining, denoising, anomaly detection in sensors/logs/medical images."
+  ],
+  "avoid": [
+   "Do not expect a plain AE to generate good new samples; use VAE/diffusion."
+  ],
+  "qa": [
+   {
+    "q": "Why can an overcomplete AE be useless without regularisation?",
+    "a": "It can copy the input through (identity), achieving zero loss without learning structure; sparsity, noise, contraction or a bottleneck forces it to capture regularities."
+   }
+  ]
+ },
+ {
+  "id": "dl-vae",
+  "phase": "deep-learning",
+  "group": "6 · Generative models",
+  "title": "Variational autoencoders: ELBO, reparameterisation, β-VAE, VQ-VAE, posterior collapse",
+  "tagline": "A probabilistic latent-variable model trained with a neural encoder - the first modern deep generative model.",
+  "viz": "kl-lab",
+  "explain": "**Model.** Prior $p(z)=\\mathcal N(0,I)$, decoder $p_\\theta(x|z)$ (Gaussian or Bernoulli). The marginal $p_\\theta(x)=\\int p_\\theta(x|z)p(z)dz$ is intractable, so introduce an **encoder** $q_\\phi(z|x)=\\mathcal N(\\mu_\\phi(x),\\mathrm{diag}\\,\\sigma_\\phi^2(x))$ and maximise the **ELBO**\n$$\\log p_\\theta(x)\\ge\\mathbb E_{q_\\phi(z|x)}[\\log p_\\theta(x|z)]-KL(q_\\phi(z|x)\\|p(z)).$$\nFirst term = reconstruction; second = regulariser keeping the code close to the prior (so sampling $z\\sim p(z)$ yields realistic $x$). KL between Gaussians has a closed form: $-\\tfrac12\\sum(1+\\log\\sigma^2-\\mu^2-\\sigma^2)$.\n\n**Reparameterisation trick.** Sampling $z$ blocks gradients; write $z=\\mu_\\phi+\\sigma_\\phi\\odot\\varepsilon$, $\\varepsilon\\sim\\mathcal N(0,I)$ so the randomness is an input and gradients flow to $\\phi$.\n\n**Behaviour.** Smooth, continuous latent space (interpolation and arithmetic work), stable training, but samples are **blurry** (Gaussian likelihood averages modes). **Posterior collapse**: a powerful decoder ignores $z$ and the KL → 0; fixes: KL annealing/warm-up, free bits, weaker decoder, δ-VAE.\n\n**Variants**\n- **β-VAE**: weight the KL by $\\beta>1$ to encourage **disentangled** factors at the expense of fidelity (also β-TCVAE, FactorVAE).\n- **Conditional VAE (CVAE)**: condition encoder/decoder on labels/attributes.\n- **VQ-VAE / VQ-VAE-2**: **discrete** latent codes by nearest-neighbour lookup in a learned codebook; straight-through gradient; commitment loss; an autoregressive prior (PixelCNN/Transformer) models code sequences - the basis of DALL-E 1 and neural audio codecs.\n- **Hierarchical VAEs** (NVAE, very deep VAEs), **IWAE** (tighter importance-weighted bound), **Wasserstein AE**, **Adversarial AE**, **flow-posterior VAEs**.\n- **Latent diffusion** uses a VAE/VQ autoencoder as its compressor.\n\n**Evaluation**: ELBO / bits-per-dim, reconstruction error, FID/IS for samples, latent traversals for disentanglement (DCI, MIG), downstream accuracy. **Anomaly detection** by ELBO or reconstruction probability.",
+  "tradeoffs": [
+   "Stable and principled with a useful latent space; sample quality below GANs/diffusion.",
+   "Higher β: more disentangled but blurrier."
+  ],
+  "pitfalls": [
+   "Posterior collapse.",
+   "Comparing ELBOs across different likelihood models.",
+   "Interpreting latent dimensions as semantic without testing."
+  ],
+  "interview": [
+   "Derive the ELBO.",
+   "Why do we need the reparameterisation trick?",
+   "How does VQ-VAE differ from VAE?"
+  ],
+  "use": [
+   "Representation learning, molecule design, latent compression for diffusion, anomaly detection."
+  ],
+  "avoid": [
+   "Do not rely on a vanilla VAE for sharp image synthesis."
+  ],
+  "qa": [
+   {
+    "q": "Derive the ELBO quickly.",
+    "a": "$\\log p(x)=\\log\\int p(x,z)\\frac{q(z|x)}{q(z|x)}dz\\ge\\mathbb E_q\\log\\frac{p(x,z)}{q(z|x)}$ by Jensen $=\\mathbb E_q\\log p(x|z)-KL(q(z|x)\\|p(z))$."
+   }
+  ]
+ },
+ {
+  "id": "dl-gans",
+  "phase": "deep-learning",
+  "group": "6 · Generative models",
+  "title": "Generative adversarial networks: minimax game, DCGAN, cGAN, Pix2Pix, CycleGAN, WGAN, StyleGAN, training pathologies",
+  "tagline": "Two networks in a game - a generator that forges and a discriminator that detects - plus the fixes that made it trainable.",
+  "viz": "kl-lab",
+  "explain": "**Original GAN.** Generator $G(z)$ maps noise to samples; discriminator $D(x)$ outputs $P(\\text{real})$. Minimax objective $\\min_G\\max_D\\ \\mathbb E_{x}[\\log D(x)]+\\mathbb E_z[\\log(1-D(G(z)))]$. At the optimal $D^*=\\frac{p_{data}}{p_{data}+p_g}$, $G$ minimises $2\\,JSD(p_{data}\\|p_g)-\\log4$. In practice use the **non-saturating** generator loss $-\\log D(G(z))$.\n\n**Training pathologies**: **mode collapse** (G outputs few modes), vanishing gradients when D is too strong (JSD saturates for disjoint supports), oscillation/non-convergence (a game, not minimisation), sensitivity to hyper-parameters. Diagnostics: samples, diversity, FID over time, D/G loss balance.\n\n**Stabilisation toolbox**: DCGAN rules (strided conv, BatchNorm, LeakyReLU/ReLU, no pooling), **label smoothing**, instance noise, **spectral normalisation**, **two time-scale updates (TTUR)**, **gradient penalty**, minibatch discrimination, EMA of generator weights, progressive growing, R1 regularisation.\n\n**Key architectures**\n- **DCGAN**: convolutional G/D, established architectural guidelines.\n- **cGAN**: condition both networks on a label/attribute $y$ (concatenate or projection discriminator, AC-GAN).\n- **Pix2Pix**: paired image-to-image translation: U-Net generator + PatchGAN discriminator + L1 loss ($G^*=\\arg\\min\\max\\mathcal L_{cGAN}+\\lambda\\mathcal L_{L1}$). Edges→photo, maps→satellite.\n- **CycleGAN**: **unpaired** translation with two generators/discriminators and **cycle-consistency** $\\|F(G(x))-x\\|_1+\\|G(F(y))-y\\|_1$ (+ identity loss). Horse↔zebra, style transfer; can hallucinate/hide information.\n- **WGAN / WGAN-GP**: replace JSD with the **Wasserstein-1 (Earth Mover's)** distance via a critic constrained to be 1-Lipschitz (weight clipping or gradient penalty $\\lambda(\\|\\nabla_{\\hat x}D\\|-1)^2$): meaningful, smooth loss correlating with quality, better gradients.\n- **StyleGAN / 2 / 3**: mapping network $z\\to w$, **adaptive instance norm** style injection at each layer, noise inputs for stochastic detail, progressive/skip generators, path-length regularisation; style mixing; photoreal faces and rich latent editing; alias-free StyleGAN3.\n- **BigGAN**, **GigaGAN**, **SRGAN/ESRGAN** (super-resolution), **StarGAN**, **text-to-image GANs**, **GAN inversion** for editing.\n\n**Evaluation**: **Inception Score**, **FID** (Fréchet distance between Gaussians fitted to Inception features - the standard), KID, precision/recall for generative models, human studies, downstream utility. Always report sample counts and feature extractor.\n\n**Applications**: image synthesis/editing, super-resolution, data augmentation (medical, tabular CTGAN), domain translation, simulation, deepfakes (ethical risks: watermarking, detection).",
+  "tradeoffs": [
+   "GANs give sharp, fast-to-sample images but are hard to train and cover modes unevenly.",
+   "Diffusion models are now more stable and diverse but slower to sample."
+  ],
+  "pitfalls": [
+   "Reading the loss as quality (use FID/samples).",
+   "Evaluating FID with too few samples.",
+   "Mode collapse unnoticed in small grids."
+  ],
+  "interview": [
+   "Derive the optimal discriminator.",
+   "Why is WGAN more stable?",
+   "How does CycleGAN work without paired data?"
+  ],
+  "use": [
+   "Image-to-image translation, super-resolution, augmentation with realistic synthetic data."
+  ],
+  "avoid": [
+   "Do not use GAN-augmented data in test sets; do not hide synthetic origin in a paper."
+  ],
+  "qa": [
+   {
+    "q": "What is mode collapse and how do you mitigate it?",
+    "a": "The generator maps many $z$ to a few outputs that fool $D$; mitigate with Wasserstein loss/gradient penalty, minibatch discrimination, unrolled GANs, diversity regularisers, and larger/EMA training."
+   }
+  ],
+  "flows": [
+   {
+    "title": "One GAN training step",
+    "hint": "Alternate D and G updates.",
+    "nodes": [
+     {
+      "id": "z",
+      "label": "Noise z",
+      "sub": "N(0, I)",
+      "icon": "🎲"
+     },
+     {
+      "id": "g",
+      "label": "Generator G",
+      "sub": "z → fake x",
+      "icon": "🎨"
+     },
+     {
+      "id": "d",
+      "label": "Discriminator D",
+      "sub": "real or fake?",
+      "icon": "🕵️"
+     },
+     {
+      "id": "data",
+      "label": "Real data",
+      "sub": "x ~ p_data",
+      "icon": "📷"
+     }
+    ],
+    "steps": [
+     {
+      "at": "z",
+      "note": "Sample a batch of latent vectors z",
+      "ms": 0
+     },
+     {
+      "at": "g",
+      "note": "G produces fake images G(z)",
+      "ms": 1
+     },
+     {
+      "at": "d",
+      "note": "D scores real batch (target 1) and fake batch (target 0); update D to separate them",
+      "ms": 2
+     },
+     {
+      "at": "data",
+      "note": "Real images supply the positive examples",
+      "ms": 0
+     },
+     {
+      "at": "g",
+      "note": "Update G (D frozen) so that D(G(z)) → 1: gradients flow back through D into G",
+      "ms": 2,
+      "tone": "good"
+     },
+     {
+      "at": "d",
+      "note": "If D wins too easily, gradients to G vanish; use WGAN-GP / spectral norm / TTUR",
+      "ms": 0,
+      "tone": "warn"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "dl-diffusion",
+  "phase": "deep-learning",
+  "group": "6 · Generative models",
+  "title": "Diffusion models: DDPM, DDIM, score matching, latent diffusion, Stable Diffusion, classifier-free guidance",
+  "tagline": "Generate by learning to reverse a gradual noising process - the engine of modern image, video and audio synthesis.",
+  "viz": "diffusion-lab",
+  "explain": "**Forward process.** Gradually add Gaussian noise: $q(x_t|x_{t-1})=\\mathcal N(\\sqrt{1-\\beta_t}\\,x_{t-1},\\beta_tI)$ for $t=1..T$. With $\\alpha_t=1-\\beta_t$, $\\bar\\alpha_t=\\prod_{s\\le t}\\alpha_s$ we can jump straight to any $t$: $x_t=\\sqrt{\\bar\\alpha_t}\\,x_0+\\sqrt{1-\\bar\\alpha_t}\\,\\varepsilon$, $\\varepsilon\\sim\\mathcal N(0,I)$. As $\\bar\\alpha_T\\to0$, $x_T\\approx\\mathcal N(0,I)$. Noise schedules: linear, cosine, learned (see the lab).\n\n**Reverse process / DDPM (Ho et al. 2020).** Learn $p_\\theta(x_{t-1}|x_t)=\\mathcal N(\\mu_\\theta(x_t,t),\\sigma_t^2I)$. The ELBO reduces to a simple **noise-prediction loss**\n$$L=\\mathbb E_{x_0,\\varepsilon,t}\\left\\|\\varepsilon-\\varepsilon_\\theta(\\sqrt{\\bar\\alpha_t}x_0+\\sqrt{1-\\bar\\alpha_t}\\varepsilon,\\ t)\\right\\|^2,$$\nwith a U-Net (or DiT transformer) conditioned on timestep embeddings. **Sampling**: start from noise and apply $x_{t-1}=\\frac1{\\sqrt{\\alpha_t}}\\left(x_t-\\frac{\\beta_t}{\\sqrt{1-\\bar\\alpha_t}}\\varepsilon_\\theta\\right)+\\sigma_tz$ for $T$ (~1000) steps.\n\n**Score-based view.** The score $\\nabla_x\\log p_t(x)\\propto-\\varepsilon_\\theta/\\sqrt{1-\\bar\\alpha_t}$. **Denoising score matching** trains a network to estimate the score of noisy data (Song & Ermon); generation = Langevin dynamics. **SDE formulation**: forward SDE $dx=f\\,dt+g\\,dW$, reverse SDE uses the score; the **probability-flow ODE** shares marginals - enabling deterministic sampling and exact likelihood.\n\n**Faster sampling**: **DDIM** (non-Markovian, deterministic, 20-50 steps), DPM-Solver, Heun/Euler ODE solvers, **distillation** (progressive, consistency models, LCM, adversarial distillation) to 1-4 steps, **flow matching / rectified flow** (straight-line probability paths; used in Stable Diffusion 3, Flux).\n\n**Conditioning & guidance.** Text/class conditioning via cross-attention. **Classifier guidance**: add $s\\nabla_x\\log p(y|x_t)$. **Classifier-free guidance (CFG)**: train with random condition dropout; sample with $\\tilde\\varepsilon=\\varepsilon(x_t,\\varnothing)+w[\\varepsilon(x_t,c)-\\varepsilon(x_t,\\varnothing)]$ - fidelity vs diversity dial ($w\\approx5$-$10$).\n\n**Latent diffusion / Stable Diffusion.** Run diffusion in the latent space of a pretrained VAE (8× downsampling, ~48× cheaper): text encoder (CLIP/T5) → U-Net/DiT with cross-attention → VAE decoder. Extensions: **ControlNet** (spatial control), **LoRA/DreamBooth/textual inversion** (personalisation), inpainting, img2img (start from a partially noised image), super-resolution, video (Sora-style spatio-temporal DiT), audio, molecule and protein generation.\n\n**Compare**: GAN — fast, unstable; VAE — blurry, fast; autoregressive — exact likelihood, slow; diffusion — best quality/diversity and stable training, iterative sampling. **Metrics**: FID, CLIP score, human preference. Risks: memorisation of training images, copyright, deepfakes - watermarking, filters.",
+  "tradeoffs": [
+   "Stable training and excellent quality/diversity vs many sampling steps (mitigated by distillation).",
+   "Latent diffusion cuts compute drastically but inherits the autoencoder's reconstruction limit."
+  ],
+  "pitfalls": [
+   "Too few sampling steps with a stochastic sampler.",
+   "High CFG scale → oversaturation and low diversity.",
+   "Evaluating FID on tiny sample sets."
+  ],
+  "interview": [
+   "Why predict noise instead of the image?",
+   "DDPM vs DDIM?",
+   "How does classifier-free guidance work?"
+  ],
+  "use": [
+   "Text-to-image/video, inpainting, super-resolution, data augmentation, scientific generation."
+  ],
+  "avoid": [
+   "Avoid when you need real-time single-pass generation and cannot distil."
+  ],
+  "qa": [
+   {
+    "q": "Why can we sample $x_t$ directly from $x_0$?",
+    "a": "Compositions of Gaussian steps are Gaussian; summing the independent noises gives $x_t=\\sqrt{\\bar\\alpha_t}x_0+\\sqrt{1-\\bar\\alpha_t}\\,\\varepsilon$, so training uses a random $t$ without simulating the chain."
+   }
+  ]
+ },
+ {
+  "id": "dl-nlp-classical",
+  "phase": "deep-learning",
+  "group": "7 · Natural language processing",
+  "title": "Classical NLP: tokenisation, normalisation, stemming, n-grams, Bag-of-Words, TF-IDF, word2vec, GloVe, fastText",
+  "tagline": "The text pipeline before transformers, still the backbone of baselines and search.",
+  "viz": "bpe-lab",
+  "explain": "**Text preprocessing.** Lower-casing, Unicode normalisation, tokenisation (whitespace, regex, sentence splitting), stop-word removal, **stemming** (Porter: crude rule-based suffix stripping, \"studies\"→\"studi\"), **lemmatisation** (dictionary/POS-aware, \"better\"→\"good\"), handling numbers/URLs/emoji, spelling correction, language identification. Deep models usually need little of this (subword tokenisers handle it); classical models need more.\n\n**N-grams and language models.** $P(w_1..w_n)\\approx\\prod P(w_i|w_{i-n+1..i-1})$ estimated by counts with smoothing (add-k, Good-Turing, Kneser-Ney, back-off). **Perplexity** $=\\exp(-\\frac1N\\sum\\log P)$ evaluates language models.\n\n**Sparse representations.**\n- **Bag-of-Words (BoW)**: counts of vocabulary words, ignoring order; binary, count or normalised variants; huge sparse vectors.\n- **TF-IDF**: $\\mathrm{tfidf}(t,d)=\\mathrm{tf}(t,d)\\cdot\\log\\frac{N}{\\mathrm{df}(t)}$ (sublinear tf, smoothed idf, L2 normalisation) - down-weights common words; with a linear SVM/logistic regression it is a very strong text baseline. **BM25** is the retrieval ranking function built on it (saturating tf, length normalisation).\n- **n-gram features**, character n-grams (robust to typos/morphology), hashing trick, **LSA** (TruncatedSVD of TF-IDF), **LDA topic models** (documents as mixtures of topics, Dirichlet priors, Gibbs/variational inference), **NMF** topics.\n\n**Dense word embeddings.** Distributional hypothesis: words in similar contexts have similar meaning.\n- **word2vec** (Mikolov 2013): **Skip-gram** predicts context words from the centre word; **CBOW** the reverse. Trained with **negative sampling** loss $\\log\\sigma(u_o^\\top v_c)+\\sum_{k}\\log\\sigma(-u_k^\\top v_c)$ or hierarchical softmax. Analogies emerge: king − man + woman ≈ queen. Implicitly factorises a shifted PMI matrix.\n- **GloVe**: factorises the log co-occurrence matrix with a weighted least squares: $\\sum f(X_{ij})(w_i^\\top\\tilde w_j+b_i+\\tilde b_j-\\log X_{ij})^2$.\n- **fastText**: embeds **character n-grams** and sums them - handles out-of-vocabulary and morphology-rich languages; also a fast linear text classifier.\n- Limits: one vector per word (no polysemy) → **contextual** embeddings (ELMo, BERT) fix this.\n\n**Document/sentence vectors**: averaged embeddings, doc2vec, SIF, then Sentence-BERT. **Evaluation**: word similarity (WordSim-353), analogy tasks, downstream accuracy, intrinsic probes; bias in embeddings (gender/race associations) must be audited.\n\n```python\nfrom sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import make_pipeline\nclf = make_pipeline(TfidfVectorizer(ngram_range=(1,2), sublinear_tf=True, min_df=2),\n                    LogisticRegression(max_iter=1000, C=4))\n```",
+  "tradeoffs": [
+   "TF-IDF + linear models: fast, strong, interpretable baselines; blind to word order and semantics.",
+   "Static embeddings capture similarity but not context."
+  ],
+  "pitfalls": [
+   "Fitting the vectoriser on test data.",
+   "Over-aggressive stop-word/stem removal hurting sentiment (negation).",
+   "Using static embeddings for polysemous words."
+  ],
+  "interview": [
+   "TF-IDF formula and intuition?",
+   "Skip-gram vs CBOW?",
+   "How does fastText handle OOV words?"
+  ],
+  "use": [
+   "Baselines for classification/search, low-resource or low-latency systems, interpretability."
+  ],
+  "avoid": [
+   "Do not skip a TF-IDF baseline before reaching for a transformer."
+  ],
+  "qa": [
+   {
+    "q": "Why is the IDF term logarithmic?",
+    "a": "It dampens the impact of rare words and makes the weight additive-like across documents; without the log a word appearing once would receive an enormous weight relative to moderately rare ones."
+   }
+  ]
+ },
+ {
+  "id": "dl-nlp-tasks",
+  "phase": "deep-learning",
+  "group": "7 · Natural language processing",
+  "title": "NLP tasks end to end: classification, NER, translation, summarisation, QA, LLMs, RAG and PEFT",
+  "tagline": "Each task's formulation, architecture, loss, metric and common failure - plus how LLMs absorbed them all.",
+  "viz": "attention-lab",
+  "explain": "**Task catalogue**\n- **Text classification / sentiment / intent**: encoder (BERT) + softmax head, cross-entropy; metrics accuracy/macro-F1. Multi-label → sigmoid + BCE.\n- **Sequence labelling: POS, NER, chunking**: token-level classification, **BIO** tags; BiLSTM/Transformer ± CRF; entity-level F1 (seqeval) not token accuracy.\n- **Machine translation**: encoder-decoder Transformer, label-smoothed cross-entropy, beam search; **BLEU** (n-gram precision × brevity penalty), chrF, COMET, human evaluation; back-translation for low-resource.\n- **Summarisation**: *extractive* (select sentences) vs *abstractive* (generate; BART, T5, PEGASUS, LLMs); **ROUGE-1/2/L**, BERTScore, factual-consistency checks (hallucination).\n- **Question answering**: *extractive* (span start/end logits, SQuAD, EM/F1), *generative*, *open-domain* (retriever + reader), multi-hop, conversational.\n- **Language generation / dialogue**: autoregressive LM, decoding (greedy, beam, top-k, nucleus, temperature), repetition penalties, safety.\n- **Information extraction, relation extraction, coreference, semantic parsing, text-to-SQL, entailment (NLI), semantic similarity, retrieval/reranking, topic modelling, keyword/keyphrase extraction, clustering, spelling/grammar correction, speech-to-text/ASR (CTC, Whisper) and TTS**.\n\n**The pre-train → fine-tune era**: **BERT** (masked LM + NSP, bidirectional encoder), **RoBERTa/ALBERT/DeBERTa/ELECTRA**; **GPT** decoder-only; **T5/BART** encoder-decoder with text-to-text framing. **Multilingual** (mBERT, XLM-R) for cross-lingual transfer.\n\n**LLM era.** Decoder-only models trained on trillions of tokens, then **instruction-tuned** and **aligned** (RLHF/DPO). Tasks reduce to **prompting**: zero/few-shot, chain-of-thought, self-consistency, tool use. Adaptation options, in order of cost: prompt → **RAG** (retrieve documents, ground generation; reduces hallucination, keeps knowledge updatable) → **PEFT** (LoRA/QLoRA, adapters, prefix/prompt tuning) → full fine-tuning → continued pre-training. **Evaluate** with task benchmarks (MMLU, GSM8K, HumanEval), LLM-as-judge with calibration, human preference, robustness and contamination checks.\n\n**RAG pipeline in brief**: chunk documents → embed → vector index (HNSW/IVF) → retrieve top-k (+ rerank, hybrid BM25) → stuff into prompt → generate with citations → evaluate retrieval (recall@k, MRR) and answer faithfulness separately. (See the LLM/RAG phases for engineering depth.)\n\n**Research directions**: low-resource languages, long-context, efficient inference, hallucination detection, interpretability, bias/fairness, multimodality, domain NLP (biomedical, legal, code).",
+  "tradeoffs": [
+   "Fine-tuned encoders are cheap and accurate for narrow tasks; LLMs are flexible but costly and less controllable.",
+   "RAG improves factuality but adds retrieval failure modes."
+  ],
+  "pitfalls": [
+   "Token-level instead of entity-level metrics for NER.",
+   "BLEU/ROUGE as the only evidence of quality.",
+   "Test-set contamination in LLM benchmarks."
+  ],
+  "interview": [
+   "How do you fine-tune BERT for NER?",
+   "BLEU vs ROUGE?",
+   "RAG vs fine-tuning - when each?"
+  ],
+  "use": [
+   "Choose the cheapest approach that meets accuracy: TF-IDF → fine-tuned encoder → LLM + RAG."
+  ],
+  "avoid": [
+   "Do not use an LLM where a regex or small classifier is enough."
+  ],
+  "qa": [
+   {
+    "q": "Why use BIO tagging for NER?",
+    "a": "It lets a token-level classifier mark entity boundaries (B-beginning, I-inside, O-outside) so adjacent entities of the same type remain separable, and entity spans can be decoded unambiguously."
+   }
+  ]
+ }
+]

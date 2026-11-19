@@ -1,0 +1,485 @@
+[
+ {
+  "id": "dl-path",
+  "phase": "deep-learning",
+  "group": "0 · Start here: the deep-learning path",
+  "title": "Master path: how to learn deep learning for research",
+  "tagline": "Eight stages from a single neuron to frontier LLM training. Do them in order and implement as you go.",
+  "viz": null,
+  "explain": "**Prerequisite**: finish the Math & ML phase through stage 4 (neural-network basics) - you need gradients, probability, cross-entropy and evaluation discipline.\n\n**The fourteen stages (sidebar order)**\n1. **Training fundamentals** - activations, initialisation, losses, normalisation, regularisation, optimisation recipes, numerics and debugging. *Everything else rests on this.*\n2. **Convolutional & vision networks** - convolution, the CNN architecture zoo (LeNet to ConvNeXt), modern vision, detection/segmentation, and the task atlas (restoration, super-resolution, faces, medical, video, optical flow).\n3. **Sequence models** - RNN/LSTM/GRU, seq2seq, the attention idea.\n4. **The Transformer** - attention, positional encodings, the block, model families (BERT/GPT/T5/ViT/Swin), efficiency, MoE, state-space models.\n5. **Tokens, embeddings and self-supervised learning** - BPE, embeddings, contrastive and masked objectives, GNNs.\n6. **Generative models** - autoencoder family, VAE, GANs (DCGAN to StyleGAN, WGAN), diffusion (DDPM, latent, Stable Diffusion).\n7. **Natural language processing** - classical NLP (TF-IDF, word2vec, GloVe, fastText) and the full task map with LLM, RAG and PEFT.\n8. **Time-series modelling** - stationarity, ARIMA, deep forecasters (TCN, Informer, Autoformer, PatchTST, TFT), anomaly and change-point detection.\n9. **Hybrid ML-DL models** - CNN-LSTM, attention hybrids, wavelet hybrids, autoencoder + boosting, fusion, and how to justify them with ablations.\n10. **Explainable AI** - taxonomy, SHAP, LIME, PDP/ICE/ALE, Grad-CAM, Integrated Gradients, counterfactuals.\n11. **Advanced research topics** - adversarial robustness, domain adaptation/generalisation, few/zero-shot, multi-task and contrastive learning, PINNs and neural operators, uncertainty quantification.\n12. **Training at scale** - pretraining data, scaling laws, compute and memory accounting, distributed training.\n13. **Post-training & efficiency** - SFT, LoRA, RLHF/DPO/GRPO, distillation, quantisation, inference speed-ups.\n14. **Research practice** - interpretability, robustness, evaluation, ablations, writing a deep-learning paper.\n\nRelated phases: *Classical ML* and *Advanced ML + RL* (earlier) cover every non-deep algorithm, reinforcement learning, causal and federated learning; *Research Methods* (right after this phase) covers PRISMA, statistical tests and paper submission.\n\n**For each concept**: run the lab, derive the formulas on paper, then implement the minimum version (a conv layer in NumPy, attention in 15 lines, a BPE trainer, nanoGPT, LoRA on a small model). A concept is *understood* only when you can explain it, derive it and code it.\n\n**Capstone ladder** (each reuses the last): MNIST MLP -> CIFAR-10 ResNet -> char-RNN -> nanoGPT on Shakespeare -> fine-tune a small LLM with LoRA -> DPO on a preference set -> reproduce one table from a recent paper -> design your own ablation study.\n\n**Paper-ready checklist**: you can (a) write the full forward pass and loss of your model with shapes, (b) count its parameters and FLOPs, (c) justify every hyper-parameter, (d) state the training recipe completely (optimizer, schedule, batch, precision, seeds), (e) run ablations with confidence intervals.",
+  "tradeoffs": [
+   "Breadth first (all stages once) then depth where your paper topic lives - not depth on one stage forever.",
+   "Reading papers early gives context; reproducing gives understanding. Do both on the same paper."
+  ],
+  "pitfalls": [
+   "Fine-tuning pretrained models without ever training from scratch - you will not understand failure modes.",
+   "Skipping stage 1: most real bugs are initialisation, normalisation, numerics or data bugs.",
+   "Copy-pasting training scripts you cannot derive."
+  ],
+  "interview": [
+   "Walk me through training a neural network end to end, naming each failure mode.",
+   "Which parts of a transformer would you ablate first and why?"
+  ],
+  "use": [
+   "Use as the syllabus and checklist; tick each concept only after derive + implement."
+  ],
+  "avoid": [
+   "Do not skip the capstone ladder; it is the part that turns reading into mastery."
+  ]
+ },
+ {
+  "id": "dl-activations",
+  "phase": "deep-learning",
+  "group": "1 · Training fundamentals",
+  "title": "Activation functions, initialisation and signal propagation",
+  "tagline": "Why a deep net trains at all: keep activations and gradients at a stable scale through depth.",
+  "viz": "backprop-lab",
+  "explain": "**Activation functions** inject non-linearity. Know each function, its derivative and its failure mode:\n\n- **sigmoid** $\\sigma(z)=1/(1+e^{-z})$ - $\\sigma'\\le 0.25$; saturates; not zero-centred; output layer for binary tasks.\n- **tanh** $\\tanh z$ - zero-centred; still saturates.\n- **ReLU** $\\max(0,z)$ - cheap; gradient 1 for $z>0$; **dying ReLU** (neuron stuck at 0).\n- **Leaky/PReLU** $\\max(\\alpha z,z)$ - fixes dying units.\n- **GELU** $z\\,\\Phi(z)\\approx 0.5z\\,(1+\\tanh(\\sqrt{2/\\pi}\\,(z+0.044715z^3)))$ - smooth; BERT/GPT-2.\n- **SiLU/Swish** $z\\,\\sigma(z)$ - smooth, non-monotonic.\n- **SwiGLU** $\\mathrm{SiLU}(xW)\\odot(xV)$ - gated FFN used in LLaMA/PaLM; better quality at equal FLOPs.\n\n**Why initialisation matters (derivation).** For $z=\\sum_{i=1}^{n}w_ix_i$ with independent zero-mean $w,x$: $\\mathrm{Var}(z)=n\\,\\mathrm{Var}(w)\\,\\mathbb E[x^2]$. To keep $\\mathrm{Var}(z)\\approx\\mathrm{Var}(x)$ layer after layer:\n\n```math\n\\text{Xavier/Glorot: }\\mathrm{Var}(w)=\\frac{2}{n_{in}+n_{out}}\\ (\\tanh),\\qquad \\text{He/Kaiming: }\\mathrm{Var}(w)=\\frac{2}{n_{in}}\\ (\\mathrm{ReLU})\n```\n\n(ReLU zeroes half the activations so the factor 2 compensates.) Too small → signals vanish with depth ($\\sigma^L\\to0$); too large → they explode. Zero init makes all neurons in a layer identical (symmetry never breaks). Transformers use $\\mathcal N(0,0.02)$ and scale residual-branch output projections by $1/\\sqrt{2L}$ (GPT-2) so the residual stream variance does not grow with depth. **Bias** usually 0; last-layer init small (so initial logits ≈ uniform, initial loss ≈ $\\ln K$ - a free sanity check).\n\n**Dead/saturated units diagnostics**: histogram of pre-activations per layer; fraction of ReLUs that are zero for all inputs; per-layer gradient norm should be roughly flat across depth.\n\n**Dying ReLU** happens when a large update pushes the bias so negative that $z<0$ for every input - the gradient is exactly 0 and it never recovers. Cures: lower LR, Leaky-ReLU/GELU, good init, normalisation.",
+  "tradeoffs": [
+   "ReLU is fastest; GELU/SiLU/SwiGLU are slightly better in transformers at small cost.",
+   "Gated activations add a third weight matrix (compensate by shrinking the hidden size to $\\frac{8}{3}d$)."
+  ],
+  "pitfalls": [
+   "Using sigmoid/tanh in deep hidden stacks without normalisation.",
+   "Initial loss far from $\\ln K$ (bad output init or label bug).",
+   "Copying PyTorch defaults without checking they match the activation (default Linear init is not He for ReLU).",
+   "Initialising all weights with the same constant."
+  ],
+  "interview": [
+   "Derive He initialisation.",
+   "Why is the initial cross-entropy loss ≈ ln(K) and why should you check it?",
+   "What is a gated linear unit and why does SwiGLU help?"
+  ],
+  "use": [
+   "Choosing activation/init when designing an architecture; debugging a net that will not start learning."
+  ],
+  "avoid": [
+   "Do not tune the learning rate to compensate for a bad initialisation."
+  ],
+  "qa": [
+   {
+    "q": "Your 50-layer plain network's loss does not move. Hypotheses?",
+    "a": "Vanishing signal/gradients: check per-layer activation std and gradient norm; fix init (He), add normalisation and residual connections, check for saturating activations, verify LR is not tiny, and confirm you can overfit a single batch."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Derivation: why the 2 in He init",
+    "body": "For ReLU, $a=\\max(0,z)$ with symmetric $z$ gives $\\mathbb E[a^2]=\\tfrac12\\mathrm{Var}(z)$. So $\\mathrm{Var}(z_{l+1})=n_l\\mathrm{Var}(w)\\cdot\\tfrac12\\mathrm{Var}(z_l)$. Setting the ratio to 1 gives $\\mathrm{Var}(w)=2/n_l$. Over $L$ layers the variance multiplies by $(n\\mathrm{Var}(w)/2)^L$ - exponentially small or large unless the factor is exactly 1."
+   }
+  ]
+ },
+ {
+  "id": "dl-losses",
+  "phase": "deep-learning",
+  "group": "1 · Training fundamentals",
+  "title": "Loss functions catalog: regression, classification, ranking, sequence, generative",
+  "tagline": "Pick the loss that matches the noise model and the metric; every loss has a gradient personality.",
+  "viz": "softmax-lab",
+  "explain": "A loss is a negative log-likelihood under an assumed noise model (see MLE in the math phase). Know the catalogue:\n\n**Regression**: MSE (Gaussian noise; sensitive to outliers), MAE/L1 (Laplace; median-seeking, constant gradient), **Huber/smooth-L1** (quadratic near 0, linear in tails), quantile/pinball loss $\\max(\\tau e,(\\tau-1)e)$ for prediction intervals.\n\n**Classification**: **binary cross-entropy** $-[y\\log p+(1-y)\\log(1-p)]$; **categorical CE** $-\\log p_y$ with gradient $p-y$ w.r.t. logits; use `BCEWithLogits`/`log_softmax` for numerical stability. **Focal loss** $-(1-p_t)^\\gamma\\log p_t$ down-weights easy examples (detection with extreme imbalance). **Label smoothing** and **class weights** adjust targets/weights. **Hinge** $\\max(0,1-yz)$ (SVM-style), **margin losses** (ArcFace, CosFace) for face/metric learning.\n\n**Metric / representation learning**: contrastive $\\ell=y\\,d^2+(1-y)\\max(0,m-d)^2$, **triplet** $\\max(0,d(a,p)-d(a,n)+m)$ (needs hard-negative mining), **InfoNCE** $-\\log\\frac{e^{s_{ii}/\\tau}}{\\sum_je^{s_{ij}/\\tau}}$ (CLIP, SimCLR).\n\n**Sequence**: token-level CE with teacher forcing, averaged per token (watch the normalisation: per token vs per sequence changes the effective weighting of long samples); **CTC** for alignment-free speech/OCR; **perplexity** $=e^{\\text{CE}}$.\n\n**Generative**: ELBO (VAE), adversarial losses (GAN, WGAN-GP), denoising MSE (diffusion), flow matching.\n\n**Dense prediction**: pixel-wise CE, **Dice** $1-\\frac{2|A\\cap B|}{|A|+|B|}$ and IoU/Jaccard loss for segmentation with class imbalance, often combined with CE.\n\n**Multi-task**: weighted sum; uncertainty weighting (learn $\\sigma_k$), GradNorm, PCGrad for conflicting gradients.\n\n**Choose by**: noise model → proper scoring rule; imbalance → weights/focal/threshold; outliers → Huber; ranking metric → pairwise/listwise losses (RankNet, LambdaRank).",
+  "tradeoffs": [
+   "Surrogate losses (CE) are smooth and trainable but not the metric (accuracy/F1/BLEU); optimise CE, then tune thresholds/decoding for the metric.",
+   "Robust losses reduce outlier influence but can slow convergence or bias estimates."
+  ],
+  "pitfalls": [
+   "MSE on classification probabilities.",
+   "Applying softmax then log (underflow) instead of fused log-softmax.",
+   "Mean-reducing a padded sequence loss over padding tokens (mask them).",
+   "Weighting multi-task losses by guess without checking their scales/gradients."
+  ],
+  "interview": [
+   "When would you use Huber over MSE?",
+   "Explain focal loss and what the gamma parameter does.",
+   "Why does InfoNCE need many negatives or a large batch?"
+  ],
+  "use": [
+   "Selecting/defending the objective in the Method section of a paper."
+  ],
+  "avoid": [
+   "Do not pick a loss only because a codebase used it; justify it by the noise model and metric."
+  ],
+  "qa": [
+   {
+    "q": "Gradient of focal loss behaviour vs CE?",
+    "a": "For a well-classified example ($p_t\\to1$) the modulating factor $(1-p_t)^\\gamma\\to0$ so its contribution vanishes; hard examples keep nearly full gradient. $\\gamma=0$ recovers CE; $\\gamma=2$ is the common default."
+   }
+  ],
+  "compare": [
+   {
+    "title": "Choosing a regression loss",
+    "head": [
+     "Loss",
+     "Optimum",
+     "Outliers",
+     "Gradient"
+    ],
+    "rows": [
+     [
+      "MSE",
+      "mean",
+      "very sensitive",
+      "proportional to error"
+     ],
+     [
+      "MAE",
+      "median",
+      "robust",
+      "constant ±1 (non-smooth at 0)"
+     ],
+     [
+      "Huber",
+      "between",
+      "robust beyond δ",
+      "linear then constant"
+     ],
+     [
+      "Quantile",
+      "τ-quantile",
+      "robust",
+      "asymmetric constant"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "dl-normalization",
+  "phase": "deep-learning",
+  "group": "1 · Training fundamentals",
+  "title": "Normalisation: BatchNorm, LayerNorm, RMSNorm, GroupNorm",
+  "tagline": "Normalisation made very deep nets trainable; the choice depends on batch size and architecture.",
+  "viz": null,
+  "explain": "All variants compute $\\hat x=\\dfrac{x-\\mu}{\\sqrt{\\sigma^2+\\epsilon}}$ then apply a learned affine $y=\\gamma\\hat x+\\beta$. They differ in **which axes** $\\mu,\\sigma$ are computed over for a tensor $(N,C,H,W)$ or $(B,T,D)$:\n\n- **BatchNorm**: over $N,H,W$ per channel - uses *batch* statistics at train time and running averages at inference. Needs a decent batch (≥16-32); behaves differently train vs eval; tricky with distributed small batches (SyncBN). Great for CNNs.\n- **LayerNorm**: over the feature dimension per token - independent of batch/sequence length; standard in transformers.\n- **RMSNorm**: $y=\\gamma\\,x/\\sqrt{\\tfrac1d\\sum x_i^2+\\epsilon}$ - drops mean-centring and $\\beta$; ~10-15% cheaper, equal quality; used in LLaMA-class models.\n- **GroupNorm**: over groups of channels, batch-independent; for detection/segmentation with tiny batches.\n- **InstanceNorm** (per sample and channel; style transfer) and **weight norm / spectral norm** (normalise weights instead of activations).\n\n**Why it helps**: smoother loss landscape and gradient scale (Santurkar et al. found it is *not* mainly about \"internal covariate shift\"), allows larger learning rates, reduces sensitivity to init, adds a mild regularising noise (BatchNorm).\n\n**Placement in transformers**: **Post-LN** $x\\leftarrow\\mathrm{LN}(x+F(x))$ (original) needs careful warmup, gradient at the output layers is large; **Pre-LN** $x\\leftarrow x+F(\\mathrm{LN}(x))$ trains stably at depth and is the modern default; extras: QK-norm (normalise queries/keys to stop attention-logit growth), final norm before the head, DeepNorm for 1000-layer nets.\n\n**BatchNorm practicalities**: set `model.eval()` for inference; freeze BN statistics when fine-tuning with tiny batches; do not put weight decay on $\\gamma,\\beta$.",
+  "tradeoffs": [
+   "BN gives the best CNN accuracy at normal batch sizes but breaks for small/variable batches and sequences; LN/RMSNorm are batch-independent.",
+   "Pre-LN is stable but can slightly under-use depth versus well-tuned Post-LN."
+  ],
+  "pitfalls": [
+   "Forgetting eval() so BN uses batch stats at inference.",
+   "Mixing different batch compositions at train and test (domain shift in BN stats).",
+   "BN with batch size 2-4.",
+   "Applying weight decay to norm parameters."
+  ],
+  "interview": [
+   "Why is LayerNorm used in transformers and not BatchNorm?",
+   "Pre-LN vs Post-LN: what changes in gradient flow?",
+   "What does BatchNorm do at inference?"
+  ],
+  "use": [
+   "CNNs with healthy batch size: BN. Transformers/RNNs: LN or RMSNorm. Small-batch dense prediction: GroupNorm."
+  ],
+  "avoid": [
+   "Do not use BN in autoregressive decoding or with highly variable batch statistics."
+  ],
+  "qa": [
+   {
+    "q": "Training is fine, eval accuracy is terrible only with BatchNorm. Why?",
+    "a": "Likely running statistics are wrong: model left in train mode/not in eval, momentum too slow, train and test distributions differ, or fine-tuning with tiny batches corrupted the running mean/var. Recompute BN statistics on representative data or freeze BN."
+   }
+  ],
+  "compare": [
+   {
+    "title": "Normalisation axes",
+    "head": [
+     "Method",
+     "Statistics over",
+     "Batch-dependent",
+     "Typical use"
+    ],
+    "rows": [
+     [
+      "BatchNorm",
+      "N,H,W per channel",
+      "yes",
+      "CNN"
+     ],
+     [
+      "LayerNorm",
+      "features per token",
+      "no",
+      "Transformer, RNN"
+     ],
+     [
+      "RMSNorm",
+      "features (no mean)",
+      "no",
+      "LLMs"
+     ],
+     [
+      "GroupNorm",
+      "channel groups",
+      "no",
+      "detection, small batch"
+     ],
+     [
+      "InstanceNorm",
+      "H,W per sample/channel",
+      "no",
+      "style transfer"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "dl-regularization",
+  "phase": "deep-learning",
+  "group": "1 · Training fundamentals",
+  "title": "Regularisation and generalisation in deep nets",
+  "tagline": "Dropout, weight decay, augmentation, early stopping, label smoothing, mixup, stochastic depth - and what each really does.",
+  "viz": "bias-variance",
+  "explain": "Deep nets are over-parameterised, so the *implicit* regulariser (SGD + architecture) matters as much as explicit ones. Toolbox:\n\n- **Weight decay (L2)**: $\\theta\\leftarrow\\theta(1-\\eta\\lambda)-\\eta g$. Use **AdamW** (decoupled). Typical $\\lambda=0.01$-$0.1$ for transformers, $5\\times10^{-4}$ for CNNs. Exclude biases/norm gains. With normalisation layers its main effect is to control the *effective learning rate* of scale-invariant weights.\n- **Dropout**: zero each unit with prob $p$ and rescale by $1/(1-p)$ at train time (inverted dropout); approximates averaging an ensemble of sub-networks. Typical $p=0.1$ in transformers, 0.5 in old FC layers; often 0 for large-data LLM pretraining (data is the regulariser).\n- **Data augmentation**: the strongest regulariser in vision: random crop/flip, colour jitter, RandAugment, **Cutout/CutMix** (paste patches, mix labels), **Mixup** $\\tilde x=\\lambda x_i+(1-\\lambda)x_j$, $\\tilde y=\\lambda y_i+(1-\\lambda)y_j$ with $\\lambda\\sim\\mathrm{Beta}(\\alpha,\\alpha)$. Text: back-translation, token masking; audio: SpecAugment.\n- **Early stopping** on validation loss (equivalent to an L2-like constraint).\n- **Label smoothing** $y'=(1-\\epsilon)y+\\epsilon/K$ limits logit growth; improves calibration.\n- **Stochastic depth / DropPath**: randomly skip residual blocks during training (ViT/ConvNeXt).\n- **Ensembling & weight averaging**: deep ensembles, **EMA** of weights, SWA.\n- **Architectural bias**: convolution (translation equivariance), weight sharing, pooling - the most efficient \"regulariser\".\n- **More data / pretraining**: usually beats every trick.\n\n**Understanding generalisation**: nets can memorise random labels yet generalise on real data; reasons proposed - SGD's implicit bias toward simple/flat solutions, low-norm solutions, double descent, margin theory; sharpness-aware minimisation (SAM) explicitly seeks flat minima: $\\min_\\theta\\max_{\\|\\epsilon\\|\\le\\rho}L(\\theta+\\epsilon)$.\n\n**Diagnosis**: train/val gap large → regularise or add data; both high → underfit (bigger model, longer training, lower regularisation).",
+  "tradeoffs": [
+   "Stronger augmentation raises robustness but can hurt if it changes the label semantics or distribution at test time.",
+   "Dropout slows convergence; with very large data and LLMs it is usually off.",
+   "SAM doubles compute per step."
+  ],
+  "pitfalls": [
+   "Applying dropout/BN in the wrong mode at eval.",
+   "L2 inside Adam instead of AdamW.",
+   "Augmentations that leak label information or are applied to validation data.",
+   "Early stopping on the test set."
+  ],
+  "interview": [
+   "Explain inverted dropout and why we rescale.",
+   "Why AdamW rather than Adam with L2?",
+   "What does mixup do to the decision boundary?"
+  ],
+  "use": [
+   "Designing training recipes and writing the 'implementation details' of a paper."
+  ],
+  "avoid": [
+   "Do not stack every regulariser; add one at a time and measure the validation effect."
+  ],
+  "qa": [
+   {
+    "q": "Validation loss rises after epoch 5 while training loss keeps falling. What do you do?",
+    "a": "Classical overfitting: early-stop at the best epoch, add augmentation/weight decay/dropout, reduce capacity or add data, use label smoothing/mixup, check for train/val leakage differences, and verify that the val set is representative."
+   }
+  ]
+ },
+ {
+  "id": "dl-optim-recipes",
+  "phase": "deep-learning",
+  "group": "1 · Training fundamentals",
+  "title": "Training recipes: learning rate, schedules, batch size, clipping, EMA",
+  "tagline": "The hyper-parameters that decide whether a run works - with the heuristics researchers actually use.",
+  "viz": "schedule-lab",
+  "explain": "**Learning rate** is the most important hyper-parameter. Find it with an **LR range test** (increase LR exponentially over one epoch; pick ~10x below the point where loss starts to rise) or a log-scale sweep. Reference values: AdamW 3e-4 (small models), 1e-4 to 3e-5 for fine-tuning, 6e-4→6e-5 as models grow (LR is usually *lowered* as width grows; μP makes the optimum transfer across widths).\n\n**Schedules** (use the lab): linear **warmup** (0.5-5% of steps) → **cosine** or linear decay to 10% of peak; **WSD** (warmup-stable-decay) allows continuing training; **one-cycle**; step decay for classic CNN SGD. Warmup is needed because Adam's second-moment estimate and the network itself are unreliable at the start.\n\n**Batch size**: larger batches reduce gradient noise (variance $\\propto1/B$) and improve hardware utilisation. **Linear scaling rule**: multiply LR by $k$ when batch ×$k$ (with warmup) up to the **critical batch size** $B_{crit}\\approx\\frac{\\text{tr}(\\Sigma)}{\\|G\\|^2}$ (gradient-noise scale), beyond which returns diminish. Square-root scaling is used for Adam. Use **gradient accumulation** to simulate large batches on small memory.\n\n**Gradient clipping**: clip global norm to 1.0 ($g\\leftarrow g\\cdot\\min(1,c/\\|g\\|)$) - prevents loss spikes; log the fraction of clipped steps.\n\n**Adam hyper-parameters**: $\\beta_1=0.9$, $\\beta_2=0.95$-$0.999$ (0.95 for LLMs - reacts faster to spikes), $\\epsilon=10^{-8}$ ($10^{-6}$-$10^{-5}$ in bf16/low precision), weight decay 0.1.\n\n**Exponential moving average (EMA)** of weights $\\theta_{ema}\\leftarrow\\beta\\theta_{ema}+(1-\\beta)\\theta$ gives a smoother, better model for evaluation and sampling (diffusion, detection).\n\n**Order of tuning**: (1) overfit one batch, (2) LR, (3) batch size/steps, (4) weight decay, (5) schedule, (6) architecture knobs. Change one thing at a time; use ≥3 seeds before concluding.\n\n**Early signs**: loss does not decrease → LR too low/bug; loss spikes → LR too high/no warmup/data issue; train fine but val bad → generalisation; NaN → numerics (next concepts).",
+  "tradeoffs": [
+   "Big batch + high LR trains faster in wall-clock but may need more samples and can generalise worse.",
+   "Cosine decay needs the total step count in advance; WSD/constant+decay is flexible."
+  ],
+  "pitfalls": [
+   "Comparing optimisers/architectures at a single un-tuned LR.",
+   "Scaling batch size without LR/warmup changes.",
+   "Resuming from checkpoint without optimizer/scheduler/RNG state.",
+   "Gradient clipping that is always active (hidden instability)."
+  ],
+  "interview": [
+   "How do you pick the learning rate for a new model?",
+   "What is the critical batch size?",
+   "Why does the LLM recipe use beta2=0.95?"
+  ],
+  "use": [
+   "Writing the 'Implementation details' section; reproducing papers."
+  ],
+  "avoid": [
+   "Do not tune on the test set; do not trust a single seed for small effects."
+  ],
+  "qa": [
+   {
+    "q": "Linear scaling rule and its limit?",
+    "a": "If batch size is multiplied by k, multiply LR by k (short warmup) so that k steps of the small batch ≈ one step of the big batch. It breaks beyond the critical batch size where gradient noise is already low and more batch gives no extra progress."
+   }
+  ]
+ },
+ {
+  "id": "dl-pytorch-debug",
+  "phase": "deep-learning",
+  "group": "1 · Training fundamentals",
+  "title": "PyTorch autograd, numerics, mixed precision and the debugging playbook",
+  "tagline": "How training code really works, how fp16/bf16 fail, and a systematic way to debug a net that will not learn.",
+  "viz": "backprop-lab",
+  "explain": "**Autograd**: tensors with `requires_grad=True` record a graph; `loss.backward()` walks it in reverse accumulating into `.grad`. Remember: gradients **accumulate** (zero them), `torch.no_grad()`/`inference_mode` for eval, `.detach()` cuts the graph, in-place ops on needed tensors raise errors, `model.train()/eval()` flips dropout/BN.\n\n**Floating point**: fp32 (8 exp bits, 23 mantissa), **fp16** (5 exp, 10 mantissa; range ≈ 6e-5…65504 → needs **loss scaling** to avoid gradient underflow), **bf16** (8 exp, 7 mantissa; fp32 range, less precision → default for LLM training), **fp8** (E4M3/E5M2 with per-tensor scaling, Hopper+), **int8/int4** (inference). Keep in fp32: master weights, optimizer state, softmax/log-sum-exp, norm statistics, loss. **Mixed precision** = bf16/fp16 compute + fp32 master weights. Rounding: bf16 cannot add 1e-4 to 1.0 — accumulate in fp32.\n\n**Common numerical failures**: overflow in `exp` (use log-sum-exp), `log(0)` (clamp/eps or use fused losses), division by zero in normalisation (eps), attention-logit blow-up (QK-norm, logit softcapping), loss spikes from rare bad batches, bf16 embedding/LM-head precision loss.\n\n**The debugging playbook** (in order):\n1. **Overfit a tiny batch** (8-32 examples) to ~0 loss. If you cannot, there is a bug (labels, loss, shapes, LR, frozen params).\n2. **Check initial loss** ≈ $\\ln K$ (classification) or the variance of targets (regression).\n3. **Shapes & broadcasting**: assert shapes at every module; verify batch dim is not accidentally summed.\n4. **Data**: visualise inputs *after* the transforms, check label alignment, class balance, duplicates between train/val, normalisation constants.\n5. **Gradient checks**: per-layer grad-norm/param-norm ratio (~1e-3 healthy), no NaN/inf, no layer with zero grad (detached/ReLU dead/unused).\n6. **Update ratio**: $\\|\\Delta\\theta\\|/\\|\\theta\\|\\approx10^{-3}$ per step is a good sign; ≪ → LR too low, ≫ → too high.\n7. **Reduce complexity**: remove augmentation, regularisation, schedule; use fp32; one GPU; fixed seed.\n8. **Compare to a reference**: known-good implementation/baseline; compute the same loss on the same input in both.\n9. **Learning curves**: train vs val; look for spikes (data/LR), plateaus (LR/capacity), divergence (numerics).\n\n**Reproducibility**: seed Python/NumPy/PyTorch/CUDA, `torch.backends.cudnn.deterministic`, deterministic data order (seed the sampler, worker init), log git hash/config/library versions; note that atomics make some GPU ops non-deterministic - report variance across seeds instead of chasing bitwise equality.\n\n**Performance basics**: profile (torch.profiler), `torch.compile`, channels-last, fused optimizers, DataLoader workers + pinned memory (don't starve the GPU), avoid host-device syncs (`.item()` in the loop), gradient checkpointing for memory.",
+  "tradeoffs": [
+   "bf16 is simpler (no loss scaling) but less precise than fp16; fp8 needs careful scaling and is mostly for large-scale runs.",
+   "Gradient checkpointing trades ~30% extra compute for large activation-memory savings."
+  ],
+  "pitfalls": [
+   "Forgetting optimizer.zero_grad().",
+   "Leaving the model in train mode during validation.",
+   "Computing metrics under autograd (memory leak): use no_grad.",
+   "Data loader reshuffling differently on resume.",
+   "Silent label/feature leakage making loss too good."
+  ],
+  "interview": [
+   "Your loss is NaN after 3,000 steps. Walk through the diagnosis.",
+   "bf16 vs fp16: differences and when each fails?",
+   "How do you verify a training pipeline before launching an expensive run?"
+  ],
+  "use": [
+   "Every training run; include the checklist in your research notebook."
+  ],
+  "avoid": [
+   "Do not launch a multi-day run without the tiny-batch overfit and a short smoke run first."
+  ],
+  "qa": [
+   {
+    "q": "Loss goes down for the training set but your model outputs the same class always on validation.",
+    "a": "Check eval mode (dropout/BN), preprocessing mismatch between train and val, label mapping, class imbalance with threshold, and whether the model memorises. Compare input distributions and run the validation transform on training data to see if the model works there."
+   }
+  ]
+ },
+ {
+  "id": "dl-cnn",
+  "phase": "deep-learning",
+  "group": "2 · Convolutional and vision networks",
+  "title": "Convolutional networks: the math, shapes, receptive fields",
+  "tagline": "Local connectivity + weight sharing = translation equivariance with few parameters.",
+  "viz": "conv-lab",
+  "explain": "**2-D convolution** (technically cross-correlation) of input $X\\in\\mathbb R^{C_{in}\\times H\\times W}$ with kernels $K\\in\\mathbb R^{C_{out}\\times C_{in}\\times k\\times k}$:\n\n```math\nY_{o,i,j}=b_o+\\sum_{c=1}^{C_{in}}\\sum_{u,v}K_{o,c,u,v}\\,X_{c,\\,si+u-p,\\,sj+v-p},\\qquad H_{out}=\\left\\lfloor\\frac{H+2p-k}{s}+1\\right\\rfloor\n```\n\n- **Parameters**: $C_{out}(C_{in}k^2+1)$ - independent of image size (weight sharing). **MACs** ≈ $H_{out}W_{out}C_{out}C_{in}k^2$.\n- **Padding** $p$: \"same\" ($p=\\frac{k-1}{2}$) keeps size; **stride** $s$ downsamples; **dilation** $d$ enlarges the kernel footprint without parameters ($k_{eff}=d(k-1)+1$).\n- **Receptive field** grows with depth: $r_l=r_{l-1}+(k_l-1)\\prod_{i<l}s_i$. Stacking two 3×3 convs gives a 5×5 field with 18 vs 25 weights and an extra non-linearity (VGG principle).\n- **Pooling** (max/average) adds local invariance and reduces size; **global average pooling** replaces big FC heads. **1×1 convolution** mixes channels (bottleneck, cross-channel MLP). **Depthwise-separable** conv = depthwise $k\\times k$ per channel + pointwise 1×1: cost $\\approx\\frac1{C_{out}}+\\frac1{k^2}$ of a standard conv (MobileNet, Xception, ConvNeXt). **Grouped** conv (ResNeXt). **Transposed conv** upsamples (watch checkerboard artefacts; prefer resize+conv).\n- **Equivariance vs invariance**: conv is translation-*equivariant* (shift input → shifted output); pooling and the final classifier make it approximately *invariant*. Strided ops break exact equivariance (aliasing).\n- **Backprop through conv** is another conv (with the flipped kernel); implemented via im2col+GEMM, FFT or Winograd.\n\n**Feature hierarchy**: early layers edges/colours, middle textures/parts, late object-level features; CNNs have a **texture bias** (ImageNet-trained nets) which augmentations/shape-bias training can reduce.\n\nUse the lab: change kernel, stride, padding and see the feature map, output size and parameter counts vs a dense layer.",
+  "tradeoffs": [
+   "Convs have a strong spatial inductive bias → data-efficient, but limited global context; transformers need more data but model long-range structure.",
+   "Depthwise-separable convs cut FLOPs ~8-9x but are memory-bound and slower than FLOPs suggest on GPUs."
+  ],
+  "pitfalls": [
+   "Off-by-one in output size with stride and padding; compute it, don't guess.",
+   "Treating FLOPs as latency (memory bandwidth dominates for depthwise convs).",
+   "Checkerboard artefacts from transposed convs.",
+   "Forgetting that max-pooling discards position info needed for localisation."
+  ],
+  "interview": [
+   "Compute the output shape and parameter count of Conv(64→128, k=3, s=2, p=1) on a 56×56 input.",
+   "Why are two 3×3 convs preferred over one 5×5?",
+   "What is the receptive field and how do you grow it cheaply?"
+  ],
+  "use": [
+   "Images, audio spectrograms, 1-D signals (1-D conv), small data with spatial structure, edge deployment."
+  ],
+  "avoid": [
+   "Do not use FC layers on raw high-resolution images."
+  ],
+  "qa": [
+   {
+    "q": "Params and shape: input 3×224×224, Conv(3→64, k=7, s=2, p=3).",
+    "a": "Output $=\\lfloor(224+6-7)/2+1\\rfloor=112$, so $64\\times112\\times112$; params $=64(3\\cdot49+1)=9{,}472$; MACs $\\approx112^2\\cdot64\\cdot3\\cdot49\\approx118$M."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Receptive field worked example",
+    "body": "Three 3×3 convs with strides 1,2,1: $r_1=3$; $r_2=3+(3-1)\\cdot1=5$; $r_3=5+(3-1)\\cdot(1\\cdot2)=9$. Strides multiply the growth of every later layer - downsampling early expands the field fast but loses resolution."
+   }
+  ]
+ },
+ {
+  "id": "dl-vision-modern",
+  "phase": "deep-learning",
+  "group": "2 · Convolutional and vision networks",
+  "title": "ResNet to ViT: modern vision, detection, segmentation, transfer learning",
+  "tagline": "Residual connections, scaling the architecture, vision transformers, and how to adapt pretrained models.",
+  "viz": null,
+  "explain": "**ResNet** (He 2015): $y=x+F(x)$; the identity path keeps gradients alive, allowing 100+ layers and fixing the \"degradation problem\" where deeper plain nets trained *worse*. Bottleneck block 1×1→3×3→1×1 reduces cost. **Pre-activation** ResNet, **DenseNet** (concat features), **ResNeXt** (groups), **SE/CBAM** (channel attention), **EfficientNet** (compound scaling of depth/width/resolution: $d=\\alpha^\\phi,w=\\beta^\\phi,r=\\gamma^\\phi$), **RegNet**, **ConvNeXt** (a CNN modernised with transformer recipes: 7×7 depthwise, LayerNorm, GELU, inverted bottleneck - matches Swin).\n\n**Vision Transformer (ViT)**: split the image into $P\\times P$ patches, flatten + linear projection (= a stride-$P$ conv), add position embeddings and a [CLS] token, run a standard transformer encoder. Needs lots of data (JFT/ImageNet-21k) or strong augmentation/distillation (DeiT); with enough data it scales better than CNNs. **Swin** uses shifted windows for linear cost and hierarchical features; **MAE** pretrains by masking 75% of patches and reconstructing pixels; **DINO/DINOv2** self-distillation; **CLIP** contrastive image-text pretraining.\n\n**Detection**: two-stage **Faster R-CNN** (region proposals → classify/refine), one-stage **YOLO/SSD/RetinaNet** (dense predictions + focal loss), **DETR** (set prediction with Hungarian matching, no NMS). Metrics: IoU, **AP/mAP@[.5:.95]**; NMS removes duplicates. **Segmentation**: **U-Net** (encoder-decoder with skip connections - dominant in medical imaging and diffusion), FCN, DeepLab (atrous conv + ASPP), Mask R-CNN (instance), SAM (promptable). Losses: CE + Dice. **Generation**: diffusion U-Net/DiT (see generative models in the math phase).\n\n**Transfer learning recipe**: (1) start from a pretrained backbone, (2) replace the head, (3) first train the head with the backbone frozen, (4) unfreeze with a *lower* LR for the backbone (layer-wise LR decay), (5) use the pretrained normalisation statistics/preprocessing, (6) augment, (7) compare against a linear probe and from-scratch baseline. Small data → freeze more; large domain shift → fine-tune more.\n\n**Evaluation & fairness of comparison**: report top-1/top-5, params, FLOPs, throughput (images/s on named hardware), train recipe (epochs, augmentation, resolution) - many \"architecture\" gains are really training-recipe gains (ResNet-RS, \"ResNet strikes back\").",
+  "tradeoffs": [
+   "ViT: global context and scaling but data-hungry; CNN: data-efficient and fast; hybrids/ConvNeXt/Swin balance both.",
+   "Two-stage detectors are more accurate on small objects; one-stage are faster."
+  ],
+  "pitfalls": [
+   "Comparing architectures with different training recipes/resolutions.",
+   "Fine-tuning at the wrong preprocessing (mean/std, resolution).",
+   "Reporting mAP without IoU thresholds.",
+   "Data leakage between ImageNet pretraining and the target test set."
+  ],
+  "interview": [
+   "Why do residual connections allow deeper networks?",
+   "ViT vs CNN: inductive bias and data requirements?",
+   "How do you fine-tune a pretrained backbone on 2,000 images?"
+  ],
+  "use": [
+   "Choose a backbone + recipe for vision tasks; justify it in a paper's baselines."
+  ],
+  "avoid": [
+   "Do not train a large ViT from scratch on a small dataset."
+  ],
+  "qa": [
+   {
+    "q": "Explain the degradation problem.",
+    "a": "Deeper plain networks had higher *training* error than shallower ones, which is not overfitting but an optimisation problem. If extra layers could learn identity the deeper net could do no worse; residual blocks make identity the default (F→0), so extra depth cannot hurt optimisation."
+   }
+  ],
+  "compare": [
+   {
+    "title": "Backbones",
+    "head": [
+     "Family",
+     "Inductive bias",
+     "Data need",
+     "Strength"
+    ],
+    "rows": [
+     [
+      "ResNet/ConvNeXt",
+      "locality, translation equivariance",
+      "low-medium",
+      "robust baseline, speed"
+     ],
+     [
+      "EfficientNet",
+      "scaled conv",
+      "medium",
+      "accuracy/FLOP"
+     ],
+     [
+      "ViT",
+      "minimal (patches)",
+      "high",
+      "scaling, multimodal"
+     ],
+     [
+      "Swin",
+      "windowed locality",
+      "medium",
+      "dense tasks"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "dl-rnn",
+  "phase": "deep-learning",
+  "group": "3 · Sequence models and attention",
+  "title": "RNN, LSTM, GRU, seq2seq and why attention appeared",
+  "tagline": "Understand recurrence and its failure modes; they motivate every modern sequence architecture.",
+  "viz": null,
+  "explain": "**Vanilla RNN**: $h_t=\\tanh(W_hh_{t-1}+W_xx_t+b)$, output $y_t=W_yh_t$. Trained with **backpropagation through time (BPTT)**; gradient to step $k$ involves $\\prod_{j=k+1}^{t}W_h^\\top\\mathrm{diag}(\\phi'(z_j))$ - a product of many Jacobians → **vanishing/exploding gradients**. Exploding: clip the norm; vanishing: gated cells.\n\n**LSTM** keeps a cell state $c_t$ with additive updates:\n```math\n\\begin{aligned}\ni_t&=\\sigma(W_i[h_{t-1},x_t]),\\ f_t=\\sigma(W_f[h_{t-1},x_t]),\\ o_t=\\sigma(W_o[h_{t-1},x_t])\\\\\n\\tilde c_t&=\\tanh(W_c[h_{t-1},x_t]),\\quad c_t=f_t\\odot c_{t-1}+i_t\\odot\\tilde c_t,\\quad h_t=o_t\\odot\\tanh(c_t)\n\\end{aligned}\n```\nThe additive path $c_t=f_t c_{t-1}+\\dots$ gives a near-identity gradient highway (forget-gate bias initialised to ~1). **GRU** merges gates (update $z_t$, reset $r_t$): fewer parameters, similar quality.\n\n**Variants**: bidirectional RNNs, stacked/residual RNNs, **truncated BPTT**, teacher forcing vs scheduled sampling (exposure bias: the model is trained on gold prefixes but generates from its own).\n\n**Seq2seq** (encoder RNN → fixed vector → decoder RNN) compresses the entire source into one vector - an information bottleneck that fails on long sentences. **Attention** (Bahdanau 2014; Luong 2015) lets the decoder look at all encoder states: $\\alpha_{ti}=\\mathrm{softmax}_i(\\mathrm{score}(s_{t-1},h_i))$, context $c_t=\\sum_i\\alpha_{ti}h_i$ - the seed of self-attention.\n\n**Why RNNs were superseded**: sequential computation (no parallelism over time), $O(n)$ path length between distant tokens, hard long-range credit assignment. Transformers: parallel training, $O(1)$ path length. **But**: RNN-like state-space models/linear attention (Mamba, RWKV, RetNet) revive constant-memory inference for long sequences.\n\n**Where RNNs still appear**: streaming/on-device speech, time-series with small data, RL policies with memory, as a baseline in papers.",
+  "tradeoffs": [
+   "RNN inference is O(1) memory per token (good for streaming) but training is sequential; Transformers are parallel in training but KV cache grows with length.",
+   "LSTM is more expressive per step; GRU is cheaper and often equivalent."
+  ],
+  "pitfalls": [
+   "No gradient clipping on RNNs.",
+   "Forget-gate bias left at 0 (slow to learn long memory).",
+   "Padding without masking/packed sequences.",
+   "Evaluating teacher-forced loss and assuming generation quality follows."
+  ],
+  "interview": [
+   "Why do LSTMs mitigate vanishing gradients?",
+   "What is exposure bias?",
+   "How did attention fix the seq2seq bottleneck?"
+  ],
+  "use": [
+   "Streaming inference, small time-series data, understanding the historical ladder in related-work sections."
+  ],
+  "avoid": [
+   "Do not start a new large-scale language task with LSTMs without a transformer baseline."
+  ],
+  "qa": [
+   {
+    "q": "Derive why gradients vanish in an RNN.",
+    "a": "$\\partial h_t/\\partial h_k=\\prod_{j=k+1}^t\\mathrm{diag}(\\phi'(z_j))W_h$. If the largest singular value of $\\mathrm{diag}(\\phi')W_h$ is below 1 the norm decays like $\\gamma^{t-k}$; above 1 it explodes. Long-range dependencies need $t-k$ large, so their gradient signal is either ~0 or unstable."
+   }
+  ]
+ }
+]

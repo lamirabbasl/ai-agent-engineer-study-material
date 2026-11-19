@@ -1,6 +1,9 @@
 import p00 from "@/data/phases/00-foundations.json";
 import p01 from "@/data/phases/01-math-ml.json";
+import p01b from "@/data/phases/01b-classical-ml.json";
+import p01c from "@/data/phases/01c-advanced-ml.json";
 import p02 from "@/data/phases/02-deep-learning.json";
+import p02b from "@/data/phases/02b-research-methods.json";
 import p03 from "@/data/phases/03-llm-engineering.json";
 import p04 from "@/data/phases/04-rag.json";
 import p05 from "@/data/phases/05-agents.json";
@@ -101,7 +104,7 @@ const slug = (s: string) =>
     .slice(0, 48);
 
 const raw: Record<TrackId, RawPhase[]> = {
-  ai: [p00, p01, p02, p03, p04, p05, p06, p07, p08, p09, p10, p11, p12] as RawPhase[],
+  ai: [p00, p01, p01b, p01c, p02, p02b, p03, p04, p05, p06, p07, p08, p09, p10, p11, p12] as RawPhase[],
   dsa: dsaTrack as RawPhase[],
   frontend: feTrack as RawPhase[],
 };

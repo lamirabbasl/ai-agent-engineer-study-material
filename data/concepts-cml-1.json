@@ -1,0 +1,354 @@
+[
+ {
+  "id": "cml-map",
+  "phase": "classical-ml",
+  "group": "1 · Python, data and preprocessing",
+  "title": "Classical ML map: the whole supervised / unsupervised landscape on one page",
+  "tagline": "Know where every algorithm in the curriculum sits and which question it answers before studying any of them.",
+  "viz": null,
+  "explain": "Machine learning has three families: **supervised** (labelled pairs $(x,y)$; regression for continuous $y$, classification for discrete $y$), **unsupervised** (only $x$: clustering, dimensionality reduction, density estimation, association rules) and **reinforcement** (an agent learns from reward). Semi-supervised, self-supervised, transfer and active learning blend them.\n\n**The algorithm map**\n- Regression: linear, polynomial, ridge, lasso, elastic net, Bayesian linear, SVR, Gaussian-process regression, KNN, decision tree, random forest, gradient boosting (XGBoost, LightGBM, CatBoost).\n- Classification: logistic, KNN, SVM, naive Bayes (Gaussian/Multinomial/Bernoulli), LDA/QDA, decision tree, random forest, Extra Trees, AdaBoost, gradient boosting, perceptron/MLP, Gaussian-process classification.\n- Clustering: K-Means, K-Medoids, hierarchical, DBSCAN, HDBSCAN, OPTICS, mean shift, spectral, Gaussian mixtures (EM), fuzzy C-means, SOM.\n- Dimensionality reduction: PCA, kernel PCA, LDA, ICA, SVD, t-SNE, UMAP, MDS, factor analysis, Isomap, LLE, autoencoders.\n- Association rules: Apriori, FP-Growth, Eclat.\n\n**The workflow every project follows**: define the question and metric → collect/inspect data (EDA) → split (train/validation/test, respecting time and groups) → preprocess *inside* a pipeline fitted on train only → baseline → model → tune hyper-parameters with cross-validation → evaluate once on the test set → analyse errors, calibrate, explain → document and monitor.\n\n**Choosing a model (rules of thumb).** Tabular, <1M rows: gradient boosting wins most benchmarks; start with a linear/logistic baseline and a random forest. Few samples, many features: regularised linear or SVM. Need interpretability: linear, trees, GAMs, rule lists. Need probabilities: logistic, calibrated trees, GP. Images/text/audio/sequences: deep learning. Unlabelled structure: clustering/PCA first. Sequential decisions: RL.\n\n**No free lunch**: no algorithm dominates across all problems; inductive bias must match the data. That is why the rest of this phase teaches each model's assumption and failure mode, not just its API.",
+  "tradeoffs": [
+   "Simple models: fast, interpretable, robust on small data but limited capacity.",
+   "Flexible models: capture structure but need more data, tuning and monitoring."
+  ],
+  "pitfalls": [
+   "Picking a model before defining the metric.",
+   "Skipping the baseline, so no one knows whether the fancy model helps.",
+   "Tuning on the test set."
+  ],
+  "interview": [
+   "How would you choose between logistic regression and gradient boosting?",
+   "Supervised vs unsupervised vs semi-supervised?",
+   "What is 'no free lunch' and why does it matter?"
+  ],
+  "use": [
+   "Use as the index of this phase and as a checklist when starting any tabular project."
+  ],
+  "avoid": [
+   "Do not reach for deep learning on small tabular data without beating a tuned boosted-tree baseline."
+  ],
+  "qa": [
+   {
+    "q": "Why start with a baseline?",
+    "a": "It sets the floor: a majority-class or linear model tells you how much signal exists and whether complex models add value. Without it you cannot tell progress from noise."
+   }
+  ]
+ },
+ {
+  "id": "cml-python-stack",
+  "phase": "classical-ml",
+  "group": "1 · Python, data and preprocessing",
+  "title": "The Python ML stack: NumPy, Pandas, Matplotlib, Seaborn, SciPy, Scikit-learn, Statsmodels",
+  "tagline": "What each library is for, the 20 idioms you must know, and a leak-free pipeline skeleton.",
+  "viz": null,
+  "explain": "**NumPy** - n-dimensional arrays, vectorised maths, broadcasting. Rule: avoid Python loops over rows; write $y=Xw+b$ as `X @ w + b`. Know shapes, axes (`axis=0` collapses rows), slicing, boolean masks, `np.linalg`, random generators (`np.random.default_rng(seed)`).\n\n**Pandas** - labelled tables (DataFrame/Series): `read_csv`, `.info()`, `.describe()`, selection with `.loc/.iloc`, `groupby`, `merge/join`, `pivot_table`, `apply`, datetime handling (`resample`, `rolling`, `shift` for lags), missing-value tools (`isna`, `fillna`).\n\n**Matplotlib / Seaborn** - plotting. Matplotlib is the low-level engine (figure, axes, labels); Seaborn adds statistical plots (histplot, boxplot, violinplot, pairplot, heatmap for correlations, regplot). Every paper figure needs labelled axes, units, legend, readable font, vector export (PDF/SVG).\n\n**SciPy** - scientific routines: `scipy.stats` (distributions, t-test, Shapiro, Wilcoxon, Mann-Whitney, chi-square), `scipy.optimize` (minimize, L-BFGS), `scipy.linalg`, `scipy.sparse`, `scipy.signal`, `scipy.spatial` (KD-trees, distances).\n\n**Scikit-learn** - the classical-ML API. Every estimator has `fit(X,y)`, `predict`, `predict_proba`, `score`; transformers have `fit/transform`. Key modules: `preprocessing`, `impute`, `feature_selection`, `model_selection` (train_test_split, KFold, GridSearchCV, cross_val_score), `metrics`, `pipeline`, `compose.ColumnTransformer`.\n\n**Statsmodels** - statistical inference: OLS with coefficient tables (standard errors, t-tests, p-values, R², AIC/BIC), GLMs, ARIMA/SARIMAX, time-series tests (ADF). Use it when you must *explain* effects, scikit-learn when you must *predict*.\n\n**Related**: XGBoost / LightGBM / CatBoost (boosting), imbalanced-learn (SMOTE), Optuna (tuning), SHAP (explanation), PyTorch (deep learning), MLflow / Weights & Biases (tracking).\n\n**Leak-free pipeline skeleton**\n```python\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.preprocessing import StandardScaler, OneHotEncoder\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import StratifiedKFold, cross_val_score\n\nnum = Pipeline([(\"imp\", SimpleImputer(strategy=\"median\")), (\"sc\", StandardScaler())])\ncat = Pipeline([(\"imp\", SimpleImputer(strategy=\"most_frequent\")),\n                (\"oh\", OneHotEncoder(handle_unknown=\"ignore\"))])\npre = ColumnTransformer([(\"num\", num, num_cols), (\"cat\", cat, cat_cols)])\nmodel = Pipeline([(\"pre\", pre), (\"clf\", RandomForestClassifier(n_estimators=300, random_state=0))])\ncv = StratifiedKFold(5, shuffle=True, random_state=0)\nprint(cross_val_score(model, X, y, cv=cv, scoring=\"f1_macro\").mean())\n```\n\nPutting preprocessing **inside** the pipeline means imputer/scaler statistics are re-fitted on each training fold only - the single most important protection against data leakage.",
+  "tradeoffs": [
+   "Pandas is convenient but memory-hungry; for huge data use Polars/Dask/Spark.",
+   "Scikit-learn is CPU/classical only; deep models need PyTorch/TensorFlow."
+  ],
+  "pitfalls": [
+   "Fitting the scaler on the full dataset before splitting.",
+   "Chained indexing in Pandas (SettingWithCopy).",
+   "Forgetting random seeds and library versions - results become irreproducible.",
+   "Looping over DataFrame rows instead of vectorising."
+  ],
+  "interview": [
+   "What is the difference between fit_transform on train and transform on test?",
+   "Why use a Pipeline with ColumnTransformer?",
+   "Statsmodels vs scikit-learn?"
+  ],
+  "use": [
+   "Reproducible experiments: pin versions, set seeds, keep all preprocessing in a Pipeline."
+  ],
+  "avoid": [
+   "Do not do manual fit-on-all-data preprocessing in notebooks that you later report as test results."
+  ],
+  "qa": [
+   {
+    "q": "Why does scaling before splitting leak?",
+    "a": "The mean/std (or min/max) computed on all rows include test-set information, so the model indirectly sees test data; validation scores become optimistic. Fit on train only, transform both."
+   }
+  ]
+ },
+ {
+  "id": "cml-eda-clean",
+  "phase": "classical-ml",
+  "group": "1 · Python, data and preprocessing",
+  "title": "Exploratory data analysis, cleaning, missing values and outliers",
+  "tagline": "A repeatable EDA checklist and the right treatment for each kind of missingness and outlier.",
+  "viz": null,
+  "explain": "**EDA checklist (do it every time, before any model).**\n1. Shape, dtypes, memory, duplicates, constant columns, ID-like columns.\n2. Target: distribution, class balance, leakage candidates (columns created *after* the label).\n3. Univariate: histograms, box plots, skewness, cardinality of categoricals.\n4. Bivariate: correlation heatmap (Pearson/Spearman), feature-vs-target plots, group means, cross-tabs.\n5. Missingness map, outlier scan, time ordering, duplicates across train/test.\n6. Sanity: units, impossible values (negative age), date ranges, label noise samples by eye.\n\n**Types of missing data** (Rubin): **MCAR** (missing completely at random: safe to drop or impute), **MAR** (depends on other observed features: model-based imputation works), **MNAR** (depends on the missing value itself, e.g. high earners hide income: the *fact of missingness* is informative - add an indicator).\n\n**Handling missing values**\n- Drop rows (only if MCAR and few) or columns (>60% missing and weak).\n- **Simple imputation**: mean (symmetric), median (skewed/outliers), most frequent (categorical), constant.\n- **Indicator** column `is_missing` (cheap, often helpful for trees).\n- **KNN imputation**: average of the $k$ nearest rows. **Iterative / MICE**: regress each feature on the others in rounds. **Model-based** (random-forest imputers).\n- Time series: forward/backward fill, interpolation (never use future values).\n- Trees such as XGBoost/LightGBM handle NaN natively.\n\n**Outliers.** Detect: **z-score** $|z|>3$; **IQR rule** outside $[Q_1-1.5\\,IQR,\\ Q_3+1.5\\,IQR]$; **robust z** with median and MAD; multivariate **Mahalanobis** distance; **Isolation Forest**, LOF, DBSCAN noise. Treat: *investigate first* (error vs genuine rare event), cap/winsorise, log-transform, robust models/losses (Huber), or keep (fraud is *made of* outliers). Never delete outliers just to improve the metric.\n\n**Data quality**: fix types and encodings, normalise text categories ('NY','new york'), merge rare categories, deduplicate, check train/test distribution shift (adversarial validation: train a classifier to tell train from test - AUC≫0.5 signals shift).\n\n**Data leakage** - the silent killer: target leakage (feature derived from label), train-test contamination (scaling/imputing before split, duplicates across split), temporal leakage (random split of time series), group leakage (same patient in train and test). Defence: split first, pipeline everything, group/time-aware CV, inspect feature importances for 'too good' features.",
+  "tradeoffs": [
+   "Aggressive cleaning removes noise but may delete rare, important cases.",
+   "Complex imputation can beat the mean but adds variance and leakage risk if mis-fitted."
+  ],
+  "pitfalls": [
+   "Imputing before the split.",
+   "Removing outliers that are the target phenomenon.",
+   "Ignoring that missingness itself carries signal."
+  ],
+  "interview": [
+   "MCAR vs MAR vs MNAR - how does each change your strategy?",
+   "How do you detect and handle outliers?",
+   "Give three kinds of data leakage."
+  ],
+  "use": [
+   "Always; budget 30-60% of project time here."
+  ],
+  "avoid": [
+   "Do not delete rows with missing values blindly; you may bias the sample."
+  ],
+  "qa": [
+   {
+    "q": "When is median imputation better than mean?",
+    "a": "When the feature is skewed or has outliers; the median is robust and does not drag imputed values toward the tail."
+   }
+  ]
+ },
+ {
+  "id": "cml-scaling-encoding",
+  "phase": "classical-ml",
+  "group": "1 · Python, data and preprocessing",
+  "title": "Feature scaling, normalisation and encoding categorical variables",
+  "tagline": "Which scaler for which model, and how to encode categories without exploding dimensionality or leaking the target.",
+  "viz": null,
+  "explain": "**Why scale?** Distance-based and gradient-based models (KNN, SVM, K-Means, PCA, neural nets, ridge/lasso, logistic regression with regularisation) are sensitive to feature magnitude. Tree models are invariant to monotone transforms and need no scaling.\n\n**Scalers**\n- **Standardisation (z-score)** $x'=(x-\\mu)/\\sigma$: zero mean, unit variance; default for most models.\n- **Min-max** $x'=(x-x_{\\min})/(x_{\\max}-x_{\\min})\\in[0,1]$: bounded inputs (images, neural nets); sensitive to outliers.\n- **Robust scaler** $(x-\\text{median})/IQR$: outlier-resistant.\n- **MaxAbs**: keeps sparsity. **Unit-norm (L2) normalisation** per row: text/TF-IDF, cosine geometry.\n- **Power transforms** (log, Box-Cox, Yeo-Johnson) reduce skew; **quantile transform** maps to uniform/normal; **binning/discretisation** for non-linear effects.\n\n**Encoding categoricals**\n- **Label/ordinal encoding**: integers; only for genuinely ordered categories (S<M<L) or tree models.\n- **One-hot**: one binary column per category (no false order); dimension blow-up for high cardinality; drop one column for linear models (dummy trap).\n- **Binary / hashing encoders**: compact for thousands of categories.\n- **Frequency / count encoding**: replace by occurrence rate.\n- **Target (mean) encoding**: replace by $E[y|\\text{category}]$ - powerful but leaks; compute **out-of-fold** and smooth: $\\frac{n\\bar y_c+m\\bar y}{n+m}$. CatBoost's ordered target statistics solve this natively.\n- **Embeddings**: learn dense vectors for categories in neural nets.\n\n**Other transformations**: log for right-skewed money/counts ($\\log(1+x)$), polynomial/interaction terms, cyclical encoding for time ($\\sin(2\\pi t/T),\\cos(2\\pi t/T)$), date parts, text → TF-IDF, images → pixels/augmentation.\n\n**Rule of order in the pipeline**: split → impute → encode → scale → select → model, all fitted on the training fold.",
+  "tradeoffs": [
+   "One-hot is safest but wide; target encoding is compact and strong but leak-prone.",
+   "Min-max keeps bounds but one outlier squashes everything; z-score doesn't bound values."
+  ],
+  "pitfalls": [
+   "Scaling a one-hot matrix needlessly.",
+   "Target-encoding on the full dataset.",
+   "Label-encoding nominal categories for linear/distance models, inventing a false order."
+  ],
+  "interview": [
+   "Which models need feature scaling and why?",
+   "How do you encode a categorical with 10,000 levels?",
+   "What is the dummy variable trap?"
+  ],
+  "use": [
+   "ColumnTransformer with separate numeric/categorical branches."
+  ],
+  "avoid": [
+   "Do not scale the target for tree models; do invert-transform predictions if you scale it elsewhere."
+  ],
+  "qa": [
+   {
+    "q": "Why is target encoding dangerous?",
+    "a": "A row's own label contributes to its encoded feature, so the model memorises labels (leakage). Use out-of-fold statistics with smoothing so each row's encoding is computed without its own target."
+   }
+  ]
+ },
+ {
+  "id": "cml-imbalance-select",
+  "phase": "classical-ml",
+  "group": "1 · Python, data and preprocessing",
+  "title": "Class imbalance, feature selection, feature engineering and data augmentation",
+  "tagline": "Fix skewed classes the right way, pick informative features, create new ones, and enlarge data safely.",
+  "viz": "imbalance-lab",
+  "explain": "**Imbalanced data.** With 1% positives, 99% accuracy is trivial. Remedies, in order of preference:\n1. **Right metric**: PR-AUC, F1, recall at fixed precision, MCC, balanced accuracy - never plain accuracy.\n2. **Class weights / cost-sensitive loss** (`class_weight='balanced'`, focal loss $-(1-p_t)^\\gamma\\log p_t$): no data change, usually enough.\n3. **Threshold moving**: tune the decision threshold on validation to the business cost.\n4. **Resampling** (training folds only!): random oversampling, random undersampling, **SMOTE** (interpolate between a minority point and a minority neighbour), Borderline-SMOTE, ADASYN, Tomek links / ENN cleaning, SMOTE+ENN.\n5. **Ensembles for imbalance**: Balanced Random Forest, EasyEnsemble, RUSBoost.\n6. **Anomaly-detection framing** when positives are extremely rare.\nNever resample before splitting; never evaluate on resampled data.\n\n**Feature selection**\n- **Filter** (model-free, fast): variance threshold, correlation, chi-square, ANOVA F, **mutual information** $I(X;Y)$.\n- **Wrapper** (search with a model): forward / backward selection, **RFE** (recursive feature elimination), genetic search.\n- **Embedded** (selection inside training): **L1/lasso**, elastic net, tree importances, boosting gain.\n- Also remove highly collinear features (VIF > 10), use stability selection, and permutation importance on a validation set. Selection must be nested inside cross-validation to avoid optimistic bias.\n\n**Feature engineering**: ratios, differences, aggregates by group (customer mean spend), lags/rolling statistics (time series), date parts, interaction and polynomial terms, text features (TF-IDF, n-grams, length), domain features (BMI, distance), binning, clustering labels, embeddings. Good features beat fancy models.\n\n**Dimension reduction vs selection**: selection keeps original (interpretable) features; PCA/autoencoders create new ones.\n\n**Data augmentation**: images (flip, crop, rotate, colour jitter, MixUp, CutMix, RandAugment), text (back-translation, synonym replacement, masked-LM infill), audio (noise, time/pitch shift, SpecAugment), tabular (SMOTE, noise, copulas/CTGAN), time series (jitter, scaling, window slicing, time warping), synthetic data from generative models (GANs, diffusion). Augment training data only; keep labels valid under the transformation.",
+  "tradeoffs": [
+   "Oversampling can overfit duplicates; undersampling discards information.",
+   "Wrapper selection is accurate but expensive; filters are fast but ignore interactions."
+  ],
+  "pitfalls": [
+   "SMOTE before the split (synthetic neighbours leak into validation).",
+   "Feature selection on the full dataset before CV.",
+   "Reporting accuracy on imbalanced data.",
+   "Augmentations that change the label (flipping a digit '6' to '9')."
+  ],
+  "interview": [
+   "How do you handle a 1:1000 imbalance?",
+   "Filter vs wrapper vs embedded selection?",
+   "Why must SMOTE be applied only within training folds?"
+  ],
+  "use": [
+   "Fraud, medical diagnosis, defect detection, churn - class weights + threshold tuning first, resampling second."
+  ],
+  "avoid": [
+   "Do not balance the test set; it should reflect production prevalence."
+  ],
+  "qa": [
+   {
+    "q": "Why can SMOTE hurt?",
+    "a": "It interpolates minority points, which can create noisy samples inside the majority region (overlap), amplify label noise, and, if done before splitting, leak validation neighbours into training."
+   }
+  ]
+ },
+ {
+  "id": "cml-split-protocols",
+  "phase": "classical-ml",
+  "group": "1 · Python, data and preprocessing",
+  "title": "Splitting data correctly: train/validation/test, stratified, group, time-series splits, leakage audits",
+  "tagline": "The split must mimic deployment; every other number depends on it.",
+  "viz": null,
+  "explain": "**Three roles.** *Training* fits parameters; *validation* chooses models/hyper-parameters; *test* is touched **once** to report final performance. With little data use cross-validation instead of a fixed validation set, but still keep a hold-out test set (or nested CV).\n\n**Which split?**\n- **Random hold-out** (70/15/15 or 80/10/10) - i.i.d. data only.\n- **Stratified** - preserve class (or target-bin) proportions in every split; essential for imbalance.\n- **Group split** (GroupKFold) - all rows of one patient/user/document stay together, otherwise identity leaks.\n- **Time-series split** - train on the past, validate on the future (expanding or rolling window with a gap); never shuffle.\n- **Spatial/blocked** split when neighbouring samples are correlated.\n- **Leave-one-out / leave-one-group-out** for tiny data.\n- **Nested CV**: outer loop estimates generalisation, inner loop tunes hyper-parameters - the unbiased protocol for small datasets and papers.\n\n**Audit checklist for leakage**: duplicates and near-duplicates across splits (hash rows, embeddings); preprocessing fitted on train only; features unavailable at prediction time; label-derived features; time order; same entity on both sides; test used for early stopping or threshold selection.\n\n**Reporting**: random seeds, repeated CV (e.g. 5×2 or 10×10) with mean ± std, confidence intervals, and the fixed hold-out result. A single lucky split is not evidence; for a paper repeat with several seeds and test significance (see the research-methods phase).\n\n**Distribution shift**: covariate shift ($P(x)$ changes), label shift, concept drift ($P(y|x)$ changes). Mimic it in validation (e.g. validate on the most recent month) and monitor in production.",
+  "tradeoffs": [
+   "More validation data → reliable estimates but less training data.",
+   "Nested CV is rigorous but multiplies compute."
+  ],
+  "pitfalls": [
+   "Random CV on time series.",
+   "Tuning many models on one validation set until it is effectively training data.",
+   "Reporting the best CV fold."
+  ],
+  "interview": [
+   "How would you validate a model forecasting next week's demand?",
+   "What is nested cross-validation and when is it needed?",
+   "Why GroupKFold for medical images?"
+  ],
+  "use": [
+   "Mirror production: if the model predicts the future for unseen users, validate on future time and unseen users."
+  ],
+  "avoid": [
+   "Never peek at the test set to choose between models."
+  ],
+  "qa": [
+   {
+    "q": "Why use a gap in time-series CV?",
+    "a": "Features like rolling means look back and labels look ahead; without a gap between train end and validation start, overlapping windows leak information from the training period into validation."
+   }
+  ]
+ },
+ {
+  "id": "cml-linear-poly",
+  "phase": "classical-ml",
+  "group": "2 · Regression models",
+  "title": "Linear and polynomial regression: OLS, assumptions, diagnostics, R², multicollinearity",
+  "tagline": "Derive OLS, know its assumptions, read a regression table, and extend to curves with polynomial features.",
+  "viz": "bias-variance",
+  "explain": "**Model.** $y=Xw+\\varepsilon$, $\\varepsilon\\sim\\mathcal N(0,\\sigma^2)$. **OLS** minimises $\\|y-Xw\\|^2$; the normal equations give $\\hat w=(X^\\top X)^{-1}X^\\top y$ (solve with QR/SVD). It is also the **maximum-likelihood** estimator under Gaussian noise and the **BLUE** (Gauss-Markov) under uncorrelated, equal-variance errors.\n\n**Assumptions (LINE + more)**: **L**inearity in parameters, **I**ndependent errors, **N**ormal errors (needed only for small-sample inference), **E**qual variance (homoscedasticity), no perfect multicollinearity, no influential outliers, exogeneity.\n\n**Diagnostics**: residuals vs fitted (funnel ⇒ heteroscedasticity, curve ⇒ non-linearity), Q-Q plot of residuals (normality), Durbin-Watson (autocorrelation), Cook's distance and leverage (influence), **VIF** $=1/(1-R_j^2)$ (multicollinearity; >10 is a flag). Fixes: transform $y$ (log), add terms, robust or weighted least squares, regularisation.\n\n**Metrics**: $R^2=1-\\frac{SS_{res}}{SS_{tot}}$ (can be negative out-of-sample), **adjusted $R^2$** penalises extra features, RMSE/MAE (in target units), AIC/BIC for model comparison. Coefficient $w_j$ = change in $y$ per unit $x_j$ holding others fixed; inference gives standard errors $\\sqrt{\\hat\\sigma^2(X^\\top X)^{-1}_{jj}}$, t-statistics, p-values, confidence intervals.\n\n**Polynomial regression.** Still linear in parameters: expand $x\\to[1,x,x^2,\\dots,x^d]$ and run OLS. Degree is the bias-variance dial: low degree underfits, high degree oscillates (Runge phenomenon), especially at the edges. Standardise before expanding (powers explode), choose $d$ by cross-validation, or use splines/GAMs for local flexibility. Interaction terms $x_1x_2$ capture joint effects.\n\n```python\nfrom sklearn.preprocessing import PolynomialFeatures, StandardScaler\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.pipeline import make_pipeline\nmodel = make_pipeline(StandardScaler(), PolynomialFeatures(3), LinearRegression())\n```\n\n**Gradient-descent view**: $\\nabla_w=\\frac2n X^\\top(Xw-y)$; closed form is $O(nd^2+d^3)$, GD/SGD scales to huge $n$.",
+  "tradeoffs": [
+   "OLS is interpretable and fast but assumes linearity and breaks under collinearity.",
+   "Higher polynomial degree lowers bias, raises variance."
+  ],
+  "pitfalls": [
+   "Extrapolating polynomials.",
+   "Interpreting coefficients under strong multicollinearity.",
+   "Using R² alone, or on a non-linear problem, as 'goodness'."
+  ],
+  "interview": [
+   "State and justify the normal equations.",
+   "What happens to OLS when features are collinear?",
+   "How do you choose the polynomial degree?"
+  ],
+  "use": [
+   "Baselines, inference about effects, small data, when a linear relation is physically plausible."
+  ],
+  "avoid": [
+   "Do not use high-degree polynomials for extrapolation; use regularisation or splines."
+  ],
+  "qa": [
+   {
+    "q": "Derive the normal equations.",
+    "a": "$J=\\|y-Xw\\|^2$; $\\nabla_wJ=-2X^\\top(y-Xw)=0\\Rightarrow X^\\top Xw=X^\\top y\\Rightarrow \\hat w=(X^\\top X)^{-1}X^\\top y$ when $X^\\top X$ is invertible."
+   }
+  ]
+ },
+ {
+  "id": "cml-regularized",
+  "phase": "classical-ml",
+  "group": "2 · Regression models",
+  "title": "Ridge, Lasso, Elastic Net and Bayesian linear regression",
+  "tagline": "Shrinkage as a prior: geometry of L1/L2, closed forms, and the Bayesian posterior over weights.",
+  "viz": "bias-variance",
+  "explain": "**Ridge (L2).** $\\min\\|y-Xw\\|^2+\\lambda\\|w\\|_2^2$, closed form $\\hat w=(X^\\top X+\\lambda I)^{-1}X^\\top y$. It shrinks all coefficients continuously, always invertible (fixes collinearity), equals MAP with a Gaussian prior $w\\sim\\mathcal N(0,\\tau^2I)$, $\\lambda=\\sigma^2/\\tau^2$. In the SVD basis each component is scaled by $\\frac{\\sigma_i^2}{\\sigma_i^2+\\lambda}$ - small-variance directions are damped most.\n\n**Lasso (L1).** $\\min\\|y-Xw\\|^2+\\lambda\\|w\\|_1$. The diamond-shaped constraint touches the loss contour at a corner, so many weights become **exactly zero** (feature selection). No closed form; solved by coordinate descent / proximal methods, soft-thresholding $\\mathrm{sign}(z)(|z|-\\lambda)_+$. MAP with a Laplace prior. Drawbacks: picks one of several correlated features arbitrarily, at most $n$ non-zeros, biased estimates.\n\n**Elastic Net.** $\\lambda(\\alpha\\|w\\|_1+\\tfrac{1-\\alpha}2\\|w\\|_2^2)$: sparsity of L1 with the grouping effect of L2 (correlated features enter together). Default for $p\\gg n$ and correlated predictors.\n\n**Choosing $\\lambda$**: cross-validation (`RidgeCV, LassoCV, ElasticNetCV`), regularisation path plots, one-standard-error rule. **Always standardise** features first, otherwise the penalty treats scales unequally. Don't penalise the intercept. Variants: adaptive lasso, group lasso, fused lasso, SCAD/MCP (less bias), Huber and quantile regression for robust/quantile targets.\n\n**Bayesian linear regression.** Prior $w\\sim\\mathcal N(0,\\alpha^{-1}I)$, likelihood $y\\sim\\mathcal N(Xw,\\beta^{-1})$ ⇒ Gaussian posterior\n$$S_N^{-1}=\\alpha I+\\beta X^\\top X,\\qquad m_N=\\beta S_NX^\\top y.$$\nThe predictive distribution for a new $x_*$ is Gaussian with mean $m_N^\\top x_*$ and variance $\\beta^{-1}+x_*^\\top S_Nx_*$: **uncertainty grows away from the data**. The posterior mean equals ridge regression. Hyper-parameters $\\alpha,\\beta$ can be set by maximising the marginal likelihood (evidence) - automatic relevance determination (ARD) prunes irrelevant features. `BayesianRidge`, `ARDRegression` in scikit-learn.",
+  "tradeoffs": [
+   "Ridge keeps all features; lasso selects but is unstable under correlation; elastic net balances both.",
+   "Bayesian regression gives calibrated uncertainty at a modest computational cost."
+  ],
+  "pitfalls": [
+   "Forgetting to scale before penalising.",
+   "Interpreting lasso's selected set as 'the true causes'.",
+   "Using test data to choose λ."
+  ],
+  "interview": [
+   "Why does L1 give sparse solutions and L2 not?",
+   "Ridge as MAP - what prior?",
+   "When elastic net over lasso?"
+  ],
+  "use": [
+   "High-dimensional data ($p\\gg n$), genomics, text; any collinear design."
+  ],
+  "avoid": [
+   "Do not use lasso alone when features are strongly grouped; use elastic net."
+  ],
+  "qa": [
+   {
+    "q": "Why does the L1 ball produce zeros?",
+    "a": "The L1 ball has corners on the axes. The expanding loss ellipse usually first touches the constraint region at a corner, where some coordinates are exactly zero; the smooth L2 ball has no corners, so the contact point is generic with all coordinates non-zero."
+   }
+  ]
+ },
+ {
+  "id": "cml-nonparam-reg",
+  "phase": "classical-ml",
+  "group": "2 · Regression models",
+  "title": "SVR, KNN regression, tree-based regression, Random Forest and Gradient Boosting regressors",
+  "tagline": "Non-linear regressors, how each represents a function, and when each is the right tool.",
+  "viz": "svm-lab",
+  "explain": "**Support Vector Regression (SVR).** Fits a tube of half-width $\\varepsilon$ around the function: the **ε-insensitive loss** $\\max(0,|y-f(x)|-\\varepsilon)$ ignores small errors. Primal: $\\min\\tfrac12\\|w\\|^2+C\\sum(\\xi_i+\\xi_i^*)$ with slack variables; solution depends only on **support vectors** (points outside the tube). With a kernel (RBF) it models non-linear functions. Hyper-parameters: $C$ (error tolerance vs flatness), $\\varepsilon$ (tube width), $\\gamma$ (RBF bandwidth). Needs scaling; $O(n^2$-$n^3)$ training.\n\n**KNN regression.** Predict the (distance-weighted) mean of the $k$ nearest training targets. Non-parametric, no training, local; $k$ small → high variance, large → smooth/bias. Suffers from the curse of dimensionality and needs scaling; use KD-/ball-trees or approximate NN.\n\n**Regression trees (CART).** Recursively split on the feature/threshold minimising squared error (variance reduction) in the children; the prediction is the leaf mean (piecewise-constant function). Controls: `max_depth, min_samples_leaf, ccp_alpha` (cost-complexity pruning). Easy to read, handles mixed types and missing values, captures interactions, but unstable and cannot extrapolate.\n\n**Random Forest regression.** Average of many de-correlated trees (bootstrap samples + random feature subsets): variance ↓ with bias ≈ unchanged. Out-of-bag (OOB) error is a free validation estimate; strong default, little tuning, can't extrapolate beyond the target range.\n\n**Gradient boosting regression.** Fit trees sequentially to the **negative gradient (residuals)** of the loss: $F_m=F_{m-1}+\\eta\\,h_m$, with $h_m$ fitted to $r_i=-\\partial L/\\partial F$. Squared error → residuals; absolute/Huber/quantile losses give robust or quantile regressors. **XGBoost** (second-order Taylor, regularised objective, sparsity-aware splits), **LightGBM** (histogram binning, leaf-wise growth, GOSS/EFB; fastest), **CatBoost** (ordered boosting, native categorical handling, symmetric trees). Tune learning rate × number of trees (trade-off), depth, subsampling, column sampling, L1/L2 leaf penalties, early stopping.\n\n**Choosing**: smooth low-dimensional → GP/SVR; tabular default → LightGBM/XGBoost/CatBoost; need uncertainty → GP/quantile boosting/NGBoost; need extrapolation → linear/GAM/hybrid.",
+  "tradeoffs": [
+   "Boosting is the most accurate on tabular data but easy to overfit and sensitive to tuning.",
+   "Random forests are robust with defaults but less accurate and larger."
+  ],
+  "pitfalls": [
+   "Expecting trees to extrapolate trends.",
+   "Not scaling for SVR/KNN.",
+   "Using too high a learning rate without early stopping."
+  ],
+  "interview": [
+   "Why can't random forest extrapolate?",
+   "Explain gradient boosting as functional gradient descent.",
+   "What is the ε-insensitive loss for?"
+  ],
+  "use": [
+   "Non-linear tabular regression: price, demand, risk scores."
+  ],
+  "avoid": [
+   "Do not use KNN in hundreds of dimensions without reduction."
+  ],
+  "qa": [
+   {
+    "q": "Boosting vs bagging: which reduces bias, which variance?",
+    "a": "Bagging averages independent deep (low-bias, high-variance) models to cut variance. Boosting fits shallow (high-bias) learners sequentially to residuals, mainly reducing bias (and, with shrinkage/subsampling, controlling variance)."
+   }
+  ]
+ },
+ {
+  "id": "cml-gpr",
+  "phase": "classical-ml",
+  "group": "2 · Regression models",
+  "title": "Gaussian Process regression: kernels, posterior, uncertainty, hyper-parameters",
+  "tagline": "A distribution over functions: the Bayesian non-parametric regressor that knows what it doesn't know.",
+  "viz": null,
+  "explain": "**Definition.** A Gaussian process $f\\sim\\mathcal{GP}(m,k)$ is a collection of random variables any finite subset of which is jointly Gaussian. It is fully specified by a mean function $m(x)$ (usually 0) and a **kernel (covariance) function** $k(x,x')$ encoding the prior belief about smoothness.\n\n**Common kernels**: **RBF/squared-exp** $k=\\sigma_f^2\\exp(-\\|x-x'\\|^2/2\\ell^2)$ (infinitely smooth), **Matérn** (finite smoothness; $\\nu=3/2,5/2$ common), **periodic**, **linear**, **rational quadratic** (mixture of length-scales). Kernels can be added (OR-like: sum of effects) and multiplied (AND-like: local periodicity). Hyper-parameters: length-scale $\\ell$ (wiggliness), signal variance $\\sigma_f^2$, noise $\\sigma_n^2$.\n\n**Posterior (regression).** With training inputs $X$, targets $y$, Gram matrix $K=k(X,X)$ and test points $X_*$:\n$$\\mu_*=K_*^\\top(K+\\sigma_n^2I)^{-1}y,\\qquad \\Sigma_*=K_{**}-K_*^\\top(K+\\sigma_n^2I)^{-1}K_*.$$\nThe mean is a kernel-weighted combination of training targets; the **variance shrinks near data and grows away from it** - principled uncertainty. Computation: Cholesky of $K$, $O(n^3)$ time, $O(n^2)$ memory.\n\n**Learning hyper-parameters.** Maximise the **log marginal likelihood** $\\log p(y|X)=-\\tfrac12y^\\top(K+\\sigma_n^2I)^{-1}y-\\tfrac12\\log|K+\\sigma_n^2I|-\\tfrac n2\\log2\\pi$: data-fit term + complexity penalty (automatic Occam's razor).\n\n**Scaling**: sparse/inducing-point GPs (FITC, SVGP), random Fourier features, KISS-GP, exact GPs on GPU (GPyTorch) to $10^4$-$10^5$ points. **Classification**: GP latent function through a sigmoid; posterior is non-Gaussian, approximated by Laplace or EP.\n\n**Uses**: Bayesian optimisation surrogate (hyper-parameter tuning), small-data regression with uncertainty, spatial statistics (kriging), time series, calibration of simulators, active learning (query where variance is high). **GP ≈ infinitely wide neural network** (NNGP).",
+  "tradeoffs": [
+   "Superb uncertainty and sample efficiency, but cubic cost limits $n$.",
+   "Kernel choice encodes strong assumptions; wrong kernel → confident wrong answers."
+  ],
+  "pitfalls": [
+   "Using the default RBF for non-stationary or periodic data.",
+   "Trusting uncertainty far outside data when the kernel is mis-specified.",
+   "Not normalising $y$ (zero-mean prior)."
+  ],
+  "interview": [
+   "What does the marginal likelihood optimise?",
+   "Why is GP inference $O(n^3)$ and how do you scale it?",
+   "How do GPs relate to kernel ridge regression?"
+  ],
+  "use": [
+   "Expensive black-box optimisation, scientific data (<10k points), anywhere calibrated uncertainty matters."
+  ],
+  "avoid": [
+   "Do not use exact GPs on millions of points."
+  ],
+  "qa": [
+   {
+    "q": "Why does GP posterior variance grow away from data?",
+    "a": "Far from training points $k(x_*,X)\\to0$, so the subtracted term vanishes and $\\Sigma_*\\to K_{**}$, the prior variance: the model reverts to its prior uncertainty."
+   }
+  ]
+ }
+]

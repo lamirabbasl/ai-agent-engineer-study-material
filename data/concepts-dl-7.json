@@ -1,0 +1,107 @@
+[
+ {
+  "id": "dl-cnn-zoo",
+  "phase": "deep-learning",
+  "group": "2 · Convolutional and vision networks",
+  "title": "CNN architecture zoo: LeNet, AlexNet, VGG, GoogLeNet/Inception, ResNet, DenseNet, MobileNet, EfficientNet, Xception, ConvNeXt",
+  "tagline": "Each architecture's one big idea, parameter/FLOP profile and when to use it.",
+  "viz": "conv-lab",
+  "explain": "**Building blocks first.** Convolution (local, weight-shared), stride/padding (output size $\\lfloor\\frac{n+2p-k}{s}\\rfloor+1$), pooling (max/avg), **Global Average Pooling** (replaces huge FC layers, one value per channel), **1×1 convolution** (channel mixing/bottleneck), **depthwise-separable convolution** (depthwise $k{\\times}k$ per channel + pointwise 1×1; ≈$\\frac1{c_{out}}+\\frac1{k^2}$ of the cost), **dilated convolution** (gaps enlarge receptive field without pooling; segmentation, TCN), **residual connections** (identity shortcuts), attention in CNNs (SE blocks, CBAM).\n\n**Timeline and ideas**\n- **LeNet-5 (1998)**: conv-pool-conv-pool-FC for digits; ~60k params; established the template.\n- **AlexNet (2012)**: ReLU, dropout, GPU training, data augmentation, local response norm; 60M params; ImageNet breakthrough.\n- **VGG-16/19 (2014)**: only 3×3 convs stacked deep (two 3×3 = one 5×5 with fewer params); simple, uniform, but 138M params, heavy FC layers; great for feature extraction/style transfer.\n- **GoogLeNet / Inception (2014-16)**: **Inception module** runs 1×1, 3×3, 5×5, pooling in parallel and concatenates, with 1×1 bottlenecks; auxiliary classifiers; ~5M params. Inception-v3 factorises k×k into 1×k and k×1; v4/Inception-ResNet add residuals. **Xception**: extreme Inception = depthwise-separable convs everywhere.\n- **ResNet (2015)**: $y=F(x)+x$ solves the **degradation problem**, enabling 50-152+ layers; **bottleneck** blocks (1×1-3×3-1×1); BatchNorm; ResNeXt (grouped convs), Wide-ResNet, pre-activation ResNet; still the default backbone.\n- **DenseNet (2017)**: each layer receives the concatenation of **all previous** feature maps - feature reuse, fewer parameters, strong gradient flow, memory-hungry.\n- **MobileNet v1-v3 (2017-19)**: depthwise-separable convs, width/resolution multipliers; v2 **inverted residual + linear bottleneck**; v3 NAS + h-swish + SE. For mobile/edge. **ShuffleNet** (channel shuffle), **SqueezeNet** (fire modules).\n- **EfficientNet (2019)**: **compound scaling** of depth, width and resolution with one coefficient $\\phi$ ($d=\\alpha^\\phi$, $w=\\beta^\\phi$, $r=\\gamma^\\phi$), base found by NAS (MBConv+SE); B0-B7, EfficientNetV2 (faster training, Fused-MBConv).\n- **RegNet** (design-space exploration), **SENet** (channel attention), **HRNet** (parallel multi-resolution for dense tasks).\n- **ConvNeXt (2022)**: modernises ResNet with Transformer-era choices (7×7 depthwise conv, LayerNorm, GELU, inverted bottleneck, fewer activations, patchify stem) to match Swin - evidence that macro-design and training recipe mattered as much as attention.\n\n**Choosing**: transfer-learning baseline → ResNet-50/EfficientNet; mobile → MobileNetV3/EfficientNet-Lite; accuracy-first with big data → ConvNeXt / Swin / ViT; dense prediction → ResNet/HRNet/ConvNeXt backbone + FPN/U-Net head; tiny datasets → pretrained + light fine-tuning.\n\n**Receptive field** grows with depth; effective receptive field is Gaussian-shaped and smaller than theoretical. Report params, FLOPs, latency and top-1 together - FLOPs alone mislead for memory-bound ops.",
+  "tradeoffs": [
+   "Accuracy per FLOP: EfficientNet/ConvNeXt best; ResNet most robust and tool-supported; depthwise convs are FLOP-cheap but not always latency-cheap.",
+   "Dense connectivity saves parameters but costs memory."
+  ],
+  "pitfalls": [
+   "Comparing models trained with different recipes (augmentation, epochs) and attributing gains to architecture.",
+   "Ignoring input-resolution differences.",
+   "Using ImageNet statistics incorrectly (normalisation mismatch)."
+  ],
+  "interview": [
+   "Why do residual connections help?",
+   "How much cheaper is a depthwise-separable conv?",
+   "What is EfficientNet's compound scaling?"
+  ],
+  "use": [
+   "Pick a pretrained backbone from this list for any vision project."
+  ],
+  "avoid": [
+   "Do not start a new vision project from scratch with a hand-made CNN unless data are huge or very unlike ImageNet."
+  ],
+  "qa": [
+   {
+    "q": "Cost ratio of depthwise-separable vs standard conv?",
+    "a": "Standard: $k^2c_{in}c_{out}HW$. Separable: $k^2c_{in}HW+c_{in}c_{out}HW$. Ratio $=\\frac1{c_{out}}+\\frac1{k^2}$, i.e. ~8-9× fewer multiply-adds for 3×3 kernels with many channels."
+   }
+  ]
+ },
+ {
+  "id": "dl-transformer-zoo",
+  "phase": "deep-learning",
+  "group": "4 · The Transformer",
+  "title": "Transformer model families: BERT, RoBERTa, GPT, T5, BART, ViT, Swin, DeiT and time-series Transformers",
+  "tagline": "Encoder-only, decoder-only, encoder-decoder, and vision/time-series variants: objective, strengths, when to use.",
+  "viz": "attention-lab",
+  "explain": "**Three skeletons**\n- **Encoder-only (bidirectional)** - understanding tasks (classification, NER, retrieval). **BERT**: masked language modelling (15% tokens: 80% [MASK], 10% random, 10% unchanged) + next-sentence prediction; [CLS] pooled for classification; WordPiece; 110M/340M params. **RoBERTa**: drop NSP, longer training, more data, dynamic masking, bigger batches. **ALBERT** (parameter sharing, factorised embeddings, SOP), **DistilBERT** (distillation), **ELECTRA** (replaced-token detection - sample-efficient), **DeBERTa** (disentangled attention, strongest encoder), domain models (BioBERT, SciBERT, FinBERT, Legal-BERT), multilingual (XLM-R), **sentence encoders** (Sentence-BERT, E5, BGE).\n- **Decoder-only (causal, autoregressive)** - generation. **GPT-1/2/3/4, LLaMA, Mistral, Qwen, Claude-class models**: next-token prediction with causal masking; in-context learning emerges with scale; KV-cache makes inference incremental. Dominant architecture for LLMs.\n- **Encoder-decoder (seq2seq)** - translation, summarisation. **T5**: *text-to-text* framing of every task with span-corruption pretraining; **BART**: denoising autoencoder (text infilling, sentence shuffling); **mT5, Flan-T5, PEGASUS** (gap-sentence generation for summarisation), Whisper (speech).\n\n**Vision**\n- **ViT**: split image into 16×16 patches → linear projection → + position embeddings + [CLS] → standard encoder; needs large pretraining (JFT/ImageNet-21k) since it lacks convolutional inductive bias.\n- **DeiT**: data-efficient ViT via strong augmentation/regularisation and **distillation token** from a CNN teacher; trains on ImageNet-1k alone.\n- **Swin Transformer**: **shifted windows** - self-attention inside local windows (linear complexity in image size), shifted between layers to connect windows, hierarchical feature maps with patch merging → drop-in backbone for detection/segmentation.\n- Others: PVT, CvT, CoAtNet (conv+attention hybrid), MaxViT, BEiT/MAE (masked image modelling), DETR (set-prediction detector), SAM (segment anything), CLIP, DINOv2.\n\n**Time-series Transformers**: Informer, Autoformer, FEDformer, **PatchTST**, iTransformer, TFT (see forecasting). **Other modalities**: Whisper/wav2vec2 (audio), Perceiver (generic inputs), graph transformers, protein models (ESM, AlphaFold's Evoformer), decision/trajectory transformers (RL), video transformers.\n\n**Training facts**: pretrain with large batches + AdamW, warm-up and cosine/linear decay, pre-LN for stability, weight decay 0.01-0.1, mixed precision (bf16), gradient clipping 1.0; fine-tune with small LR (1e-5-5e-5), few epochs, layer-wise LR decay; compare with frozen-feature + linear probe.\n\n**Which one?** Classification/extraction with limited compute: fine-tune a base encoder (DeBERTa/RoBERTa). Generation, reasoning, tool use: decoder LLM (API or open weights + LoRA). Translation/summarisation under tight control: T5/BART or a fine-tuned LLM. Images: ConvNeXt/Swin when labels are plentiful, DINOv2/CLIP features when not.",
+  "tradeoffs": [
+   "Encoders: cheap, accurate for understanding; decoders: general but costly; seq2seq: good for structured transformation.",
+   "ViT scales best with huge data; Swin/ConvNeXt are better for medium-size supervised tasks."
+  ],
+  "pitfalls": [
+   "Using [CLS] from an un-fine-tuned model as a sentence embedding.",
+   "Truncating long documents silently.",
+   "Comparing models with different pretraining data and calling it architecture."
+  ],
+  "interview": [
+   "Why does BERT mask tokens?",
+   "ViT vs CNN inductive biases?",
+   "How does Swin achieve linear complexity?"
+  ],
+  "use": [
+   "Selecting the right pretrained family before fine-tuning."
+  ],
+  "avoid": [
+   "Don't use a giant decoder for a task a small fine-tuned encoder solves."
+  ],
+  "qa": [
+   {
+    "q": "Why can't BERT generate text well?",
+    "a": "Its bidirectional masked objective isn't a joint distribution factorised left to right; there is no causal structure to sample token by token, so generation requires awkward iterative mask-filling."
+   }
+  ]
+ },
+ {
+  "id": "cml-python-lang",
+  "phase": "classical-ml",
+  "group": "1 · Python, data and preprocessing",
+  "title": "Python for researchers: language essentials, OOP, files, exceptions, environments, debugging and reproducibility",
+  "tagline": "The programming foundation: write clean, testable, reproducible research code.",
+  "viz": null,
+  "explain": "**Language essentials.** Dynamic typing, immutable (int, str, tuple) vs mutable (list, dict, set) objects, truthiness, slicing, comprehensions ($\\texttt{[f(x) for x in xs if p(x)]}$), generators (`yield`, lazy streaming for big data), unpacking, f-strings, `enumerate/zip/sorted/map`, lambda, closures, decorators, context managers (`with`), type hints (`list[int]`, `Optional`), `dataclasses`.\n\n**Control flow & functions**: conditionals, `for/while`, `break/continue`, default/keyword-only args, `*args/**kwargs`, pure functions (no hidden global state), docstrings, recursion limits, vectorise instead of looping when using NumPy.\n\n**Data structures** (the \"algorithms and data structures\" topic): list (dynamic array: append amortised O(1), insert O(n)), dict/set (hash tables: O(1) average lookup), `collections.deque/Counter/defaultdict/OrderedDict`, `heapq` (priority queue O(log n)), `bisect`, sorting (Timsort O(n log n), stable), Big-O reasoning, graphs (adjacency dict), recursion/DP basics - needed to reason about preprocessing cost and write efficient pipelines.\n\n**Object-oriented programming.** Classes bundle state and behaviour: `__init__`, instance vs class attributes, methods, `@property`, inheritance and `super()`, polymorphism, dunder methods (`__len__, __getitem__, __repr__`), composition over inheritance. In ML: scikit-learn estimators (`fit/predict/transform`), PyTorch `nn.Module` (parameters registered in `__init__`, computation in `forward`), `Dataset`/`DataLoader`.\n\n```python\nclass Standardizer:                      # sklearn-style transformer\n    def fit(self, X):\n        self.mu_, self.sd_ = X.mean(0), X.std(0) + 1e-8\n        return self\n    def transform(self, X): return (X - self.mu_) / self.sd_\n    def fit_transform(self, X): return self.fit(X).transform(X)\n```\n\n**Files and data I/O**: `pathlib.Path`, `open()` with encoding, CSV/JSON/Parquet/HDF5/Excel readers, pickling (**never unpickle untrusted data**), saving models (`joblib`, `torch.save(state_dict)`), config files (YAML/JSON), logging instead of print.\n\n**Exceptions**: `try/except/else/finally`, catch specific exceptions, raise informative errors, `assert` for invariants, fail fast on bad data (shape/dtype/NaN checks).\n\n**Modules, packages and environments**: `import`, packages with `__init__.py`, project layout (src/, tests/, notebooks/, data/, configs/), **virtual environments** (`venv`, `conda`, `uv`) with pinned `requirements.txt`/lock files, Docker for full reproducibility, Git for version control (commit often, never commit data/secrets).\n\n**Debugging & quality**: read the traceback bottom-up, `print`/`logging`, `pdb`/`breakpoint()`, IDE debuggers, unit tests with `pytest`, shape assertions, small-sample overfit test, profiling (`cProfile`, `line_profiler`), type checking, linters (ruff/black).\n\n**Reproducibility checklist**: set seeds for `random`, NumPy, PyTorch (`torch.manual_seed`, deterministic flags), record library versions and hardware, config-driven experiments, save splits and checkpoints, track runs (MLflow/W&B), one command to rebuild every figure and table.",
+  "tradeoffs": [
+   "Notebooks speed exploration but hinder reproducibility; scripts + configs scale to papers.",
+   "Pure-Python loops are readable but slow; vectorisation or compiled libraries are needed at scale."
+  ],
+  "pitfalls": [
+   "Mutable default arguments.",
+   "Silent global state in notebooks (run-order bugs).",
+   "Unpinned dependencies breaking old results."
+  ],
+  "interview": [
+   "Mutable vs immutable types?",
+   "What does a Python generator save?",
+   "How do you ensure experiments are reproducible?"
+  ],
+  "use": [
+   "Foundation for every other topic; turn notebooks into modules before the final experiments."
+  ],
+  "avoid": [
+   "Don't hand-roll what NumPy/Pandas/scikit-learn already do correctly and fast."
+  ],
+  "qa": [
+   {
+    "q": "Why is a mutable default argument dangerous?",
+    "a": "The default is created once at function definition; every call without the argument shares the same list/dict, so state leaks between calls. Use None and create inside the function."
+   }
+  ]
+ }
+]

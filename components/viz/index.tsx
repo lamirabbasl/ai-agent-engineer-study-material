@@ -6,6 +6,8 @@ import { TokenBucket, CircuitBreaker, RetryStorm, Saga, Raft } from "./resilienc
 import { RateLimitCompare } from "./ratelimit";
 import { OptimizerLab, MatrixLab, KLLab, BiasVarianceLab, SoftmaxLab, SignificanceLab, BackpropLab, GD1DLab, KMeansLab } from "./math";
 import { ConvLab, AttentionLab, BPELab, TrainMemLab, ScheduleLab } from "./dl";
+import { RocLab, QLearnLab, MetaheuristicLab, HyperSearchLab, BoostLab, SVMLab } from "./labs-ml";
+import { TimeSeriesLab, PermBootLab, ImbalanceLab, PCALab, HMMLab, DiffusionLab, FedLab, XAILab, AssocLab, HierLab } from "./labs-more";
 import { Batching, KvCache, RagPipeline, AgentLoop } from "./ai";
 
 const REGISTRY: Record<string, () => React.ReactElement> = {
@@ -40,6 +42,22 @@ const REGISTRY: Record<string, () => React.ReactElement> = {
   "significance-lab": () => <SignificanceLab />,
   "backprop-lab": () => <BackpropLab />,
   "gd-1d": () => <GD1DLab />,
+  "roc-lab": () => <RocLab />,
+  "qlearn-lab": () => <QLearnLab />,
+  "meta-lab": () => <MetaheuristicLab />,
+  "hypersearch-lab": () => <HyperSearchLab />,
+  "boost-lab": () => <BoostLab />,
+  "svm-lab": () => <SVMLab />,
+  "timeseries-lab": () => <TimeSeriesLab />,
+  "permboot-lab": () => <PermBootLab />,
+  "imbalance-lab": () => <ImbalanceLab />,
+  "pca-lab": () => <PCALab />,
+  "hmm-lab": () => <HMMLab />,
+  "diffusion-lab": () => <DiffusionLab />,
+  "fed-lab": () => <FedLab />,
+  "xai-lab": () => <XAILab />,
+  "assoc-lab": () => <AssocLab />,
+  "hier-lab": () => <HierLab />,
   "conv-lab": () => <ConvLab />,
   "attention-lab": () => <AttentionLab />,
   "bpe-lab": () => <BPELab />,

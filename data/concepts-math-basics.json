@@ -1,0 +1,479 @@
+[
+ {
+  "id": "m-path",
+  "phase": "math-ml",
+  "group": "0 · Start here: the study path",
+  "title": "How to study this phase: from zero to writing a paper",
+  "tagline": "Seven stages. Do them in order; each one only uses what came before.",
+  "viz": null,
+  "explain": "**The path** (the sidebar follows exactly this order):\n\n1. **Foundations** - vectors/matrices, derivatives and gradient descent, probability. No prior math assumed beyond school algebra.\n2. **Classical ML** - linear and logistic regression, trees and ensembles, kNN/SVM/Naive Bayes, clustering. These are still the strongest baselines on tabular data and the language reviewers use.\n3. **Evaluation** - splits, cross-validation, metrics, leakage. Learn this *before* trusting any number.\n4. **Neural networks** - perceptron, MLP, activations, how they train.\n5. **Math deepening** - SVD, backprop in full, optimization theory, MLE/MAP, information theory, generalization theory.\n6. **Modern ML** - attention/transformers, scaling laws, self-supervised, generative models, RL, Bayesian deep learning.\n7. **Research craft** - statistics for papers, reading papers, experiment design, writing for IEEE/ISI.\n\n**How to study each concept**: (a) read \"How it works\" and play with the interactive lab until you can predict what a slider will do; (b) derive the formula by hand on paper; (c) answer the interviewer/reviewer questions out loud; (d) implement it in 20-40 lines of NumPy; (e) tick \"Mark understood\" only after (b)-(d).\n\n**Milestones**: after stage 3 you can build and honestly evaluate a classical model on a dataset. After stage 5 you can read most ML papers' Methods sections. After stage 7 you can design, run and write up an experiment worth submitting.\n\n**Suggested pace** (part-time): stages 1-2 ~4 weeks, 3-4 ~2 weeks, 5 ~4 weeks, 6 ~4 weeks, 7 ongoing alongside a real project.\n\n**Where the rest of the curriculum lives.** This phase teaches the mathematical and conceptual core and ends with a *Complete math reference* group that lists every topic of the university syllabus (linear algebra, calculus, probability, statistics, optimisation). The algorithm catalogue continues in the next phases: **Classical ML** (Python stack, preprocessing, every regression/classification/clustering/dimensionality-reduction/association algorithm, ensembles, learning theory, tuning, metrics), **Advanced ML + RL** (kernels, EM, HMM/CRF, graphical models, metaheuristics, causal/federated/transfer/online/meta-learning, reinforcement learning), **Deep Learning**, and **Research Methods** (PRISMA, statistical tests, paper writing, the 18-month plan).",
+  "tradeoffs": [
+   "Going deep on theory first feels productive but delays intuition; alternate: one theory concept, one coding exercise.",
+   "Skipping classical ML to jump to transformers leaves gaps in evaluation and baselines that reviewers notice."
+  ],
+  "pitfalls": [
+   "Watching lectures without deriving or coding anything.",
+   "Collecting papers instead of reproducing one.",
+   "Skipping the Evaluation stage and trusting leaderboard numbers."
+  ],
+  "interview": [
+   "How would you explain gradient descent to a non-technical person?",
+   "What baseline would you run before a neural network on tabular data?"
+  ],
+  "use": [
+   "Treat as the syllabus; revisit the order if you already know a stage and simply tick its items."
+  ],
+  "avoid": [
+   "Do not start at stage 6 because it is exciting; the gaps will show in every derivation."
+  ]
+ },
+ {
+  "id": "m-vectors",
+  "phase": "math-ml",
+  "group": "1 · Foundations",
+  "title": "Vectors, matrices and shapes (from zero)",
+  "tagline": "Data, weights and embeddings are all arrays. Learn dot products and shapes and half of ML is readable.",
+  "viz": "matrix-lab",
+  "explain": "A **vector** is a list of numbers, e.g. a house described by $x=[\\text{area},\\text{rooms},\\text{age}]$. You can picture it as an arrow or a point. A **matrix** is a table of numbers; a dataset with $n$ examples and $d$ features is an $n\\times d$ matrix $X$.\n\n**Operations you need**\n- Add / scale: component-wise. $2x$ doubles every entry.\n- **Dot product**: $a\\cdot b=\\sum_i a_ib_i=\\|a\\|\\|b\\|\\cos\\theta$. Big when the vectors point the same way, 0 when perpendicular.\n- **Norm** (length): $\\|x\\|_2=\\sqrt{\\sum x_i^2}$; $\\|x\\|_1=\\sum|x_i|$.\n- **Cosine similarity**: $\\cos\\theta=\\dfrac{a\\cdot b}{\\|a\\|\\|b\\|}$ - compares direction, ignores length (why it is used for text embeddings).\n- **Matrix-vector product**: $y=Wx$ means each output is a dot product of one row of $W$ with $x$. A neural-network layer is exactly this plus a bias and a nonlinearity.\n\n**Shapes are the #1 debugging tool**: $(m\\times n)\\cdot(n\\times p)=(m\\times p)$; the inner dimensions must match. Write shapes next to every equation. Broadcasting in NumPy/PyTorch silently expands size-1 dimensions - powerful and a classic source of bugs.\n\n**Matrices as transformations**: a matrix stretches, rotates or squashes space. Use the lab above: change the numbers and watch the unit circle change. A matrix whose determinant is 0 squashes space onto a line - information is lost and it cannot be inverted.",
+  "tradeoffs": [
+   "Vectorised matrix code is 100x faster than Python loops but hides shapes - assert shapes.",
+   "Cosine similarity ignores magnitude, which sometimes carries information (e.g. confidence)."
+  ],
+  "pitfalls": [
+   "Row vs column vector confusion: $x^\\top y$ vs $xy^\\top$ (scalar vs matrix).",
+   "Broadcasting a (n,) array against (n,1) and getting an (n,n) result.",
+   "Comparing embeddings with dot product when they are not normalised."
+  ],
+  "interview": [
+   "What does a dot product measure?",
+   "What is the shape of the output of a linear layer with input (batch, 512) and 256 units?",
+   "Why cosine and not Euclidean distance for text embeddings?"
+  ],
+  "use": [
+   "Reading every formula in ML; implementing layers and similarity search."
+  ],
+  "avoid": [
+   "Do not hand-write loops over examples when a matrix product does it."
+  ],
+  "qa": [
+   {
+    "q": "Compute the cosine similarity of [1,2] and [2,4].",
+    "a": "$a\\cdot b=2+8=10$, $\\|a\\|=\\sqrt5$, $\\|b\\|=\\sqrt{20}$, so $\\cos\\theta=10/(\\sqrt5\\sqrt{20})=10/10=1$: same direction, different length."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. Multiply a (2x3) by a (3x2) matrix by hand. 2. Verify (AB)^T = B^T A^T numerically. 3. Write cosine similarity in one NumPy line. 4. Implement a dense layer forward pass and check every shape."
+   }
+  ]
+ },
+ {
+  "id": "m-derivative",
+  "phase": "math-ml",
+  "group": "1 · Foundations",
+  "title": "Derivatives, gradients and gradient descent (from zero)",
+  "tagline": "A derivative is a slope; learning is walking downhill on a loss surface.",
+  "viz": "gd-1d",
+  "explain": "The **derivative** $f'(x)$ is the slope of $f$ at $x$: how much $f$ changes per tiny change in $x$. Rules: $(x^n)'=nx^{n-1}$, $(e^x)'=e^x$, $(\\ln x)'=1/x$, sum rule, product rule, and the **chain rule** $\\dfrac{d}{dx}f(g(x))=f'(g(x))\\,g'(x)$ - the engine of backpropagation.\n\nWith many inputs, the **gradient** $\\nabla f=[\\partial f/\\partial x_1,\\dots,\\partial f/\\partial x_d]$ is the vector of slopes; it points in the direction of steepest *increase*. A **partial derivative** treats the other variables as constants.\n\n**Gradient descent**: to minimise a loss $L(\\theta)$ repeat\n\n```math\n\\theta\\leftarrow\\theta-\\eta\\,\\nabla L(\\theta)\n```\n\nwhere $\\eta$ is the **learning rate**. Too small: slow. Too large: overshoots and may diverge. On a non-convex curve it can stop in a local minimum or at a flat saddle - use the lab: change the start point and the learning rate.\n\n**Worked example**: $L(w)=(w-3)^2$. $L'(w)=2(w-3)$. Start $w=0$, $\\eta=0.1$: $w_1=0-0.1\\cdot(-6)=0.6$, $w_2=0.6-0.1\\cdot(-4.8)=1.08$, ... converging to 3. At $\\eta=1$ it oscillates between 0 and 6 forever; at $\\eta>1$ it diverges.\n\n**Stochastic** gradient descent uses a random minibatch to estimate the gradient - noisy but cheap, and the noise often helps escape poor regions.",
+  "tradeoffs": [
+   "Larger learning rate = faster but riskier; schedules start high and decay.",
+   "Full-batch gradients are exact but expensive; minibatches trade accuracy for speed."
+  ],
+  "pitfalls": [
+   "Moving *with* the gradient instead of against it (sign error).",
+   "Forgetting to rescale the loss/inputs - badly scaled features make descent crawl.",
+   "Assuming a zero gradient means a minimum (could be a maximum or saddle)."
+  ],
+  "interview": [
+   "Explain gradient descent in two sentences.",
+   "What happens if the learning rate is too high or too low?",
+   "Compute the gradient of $(wx-y)^2$ with respect to $w$."
+  ],
+  "use": [
+   "Understanding every training loop; debugging divergence or slow training."
+  ],
+  "avoid": [
+   "Do not tune learning rate by feel alone - run a learning-rate sweep on a log scale."
+  ],
+  "qa": [
+   {
+    "q": "Gradient of $L=(wx+b-y)^2$ w.r.t. $w$ and $b$?",
+    "a": "Let $e=wx+b-y$. By the chain rule $\\partial L/\\partial w=2e\\,x$ and $\\partial L/\\partial b=2e$."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. Differentiate f(x)=x^2 e^x by hand. 2. Implement gradient descent for (w-3)^2 and plot w vs step for 3 learning rates. 3. Verify your gradient with a finite difference (f(x+h)-f(x-h))/2h."
+   }
+  ]
+ },
+ {
+  "id": "m-prob-basics",
+  "phase": "math-ml",
+  "group": "1 · Foundations",
+  "title": "Probability and statistics basics (from zero)",
+  "tagline": "Randomness, averages, spread, conditional probability and why averages of many things become predictable.",
+  "viz": null,
+  "explain": "**Probability** assigns a number in $[0,1]$ to events. A **random variable** $X$ maps outcomes to numbers; its **distribution** says how likely each value is (a PMF for discrete, a density/PDF for continuous).\n\n- **Mean (expectation)** $\\mathbb E[X]=\\sum x\\,p(x)$ - the long-run average.\n- **Variance** $\\mathrm{Var}(X)=\\mathbb E[(X-\\mathbb E X)^2]$ and **standard deviation** $\\sigma=\\sqrt{\\mathrm{Var}}$ - typical spread.\n- **Joint / marginal / conditional**: $P(A\\mid B)=P(A\\cap B)/P(B)$. **Independence**: $P(A\\cap B)=P(A)P(B)$.\n- **Bayes' rule**: $P(A\\mid B)=\\dfrac{P(B\\mid A)P(A)}{P(B)}$.\n\n**Worked Bayes example**: a disease affects 1% of people; a test is 95% sensitive and 90% specific. If you test positive, $P(\\text{sick}\\mid +)=\\dfrac{0.95\\cdot0.01}{0.95\\cdot0.01+0.10\\cdot0.99}\\approx0.088$. Only ~9%! The base rate matters - the classic reason accuracy alone misleads.\n\n**Key distributions**: Bernoulli (coin), Binomial, **Gaussian** $\\mathcal N(\\mu,\\sigma^2)$ (68-95-99.7 rule), Uniform, Poisson (counts), Exponential. **Law of large numbers**: the sample mean converges to the true mean. **Central limit theorem**: sums/averages of many independent variables look Gaussian regardless of the original distribution - why the Gaussian is everywhere and why confidence intervals work.\n\n**Sample vs population**: we only see a sample. The unbiased sample variance divides by $n-1$, not $n$ (Bessel's correction).",
+  "tradeoffs": [
+   "Assuming Gaussian data makes maths easy but heavy tails (income, latency) break mean/variance based reasoning.",
+   "More samples shrink standard error as $1/\\sqrt n$ - halving it needs 4x the data."
+  ],
+  "pitfalls": [
+   "Base-rate neglect (ignoring $P(A)$ in Bayes).",
+   "Confusing $P(A|B)$ with $P(B|A)$ (prosecutor's fallacy).",
+   "Treating correlated samples as independent.",
+   "Using the mean for heavy-tailed data instead of the median/quantiles."
+  ],
+  "interview": [
+   "Why is a 95%-accurate test often mostly wrong when positive?",
+   "What does the CLT say and why does it matter?",
+   "Why divide by n-1 for the sample variance?"
+  ],
+  "use": [
+   "Evaluation, A/B tests, uncertainty, every probabilistic loss later."
+  ],
+  "avoid": [
+   "Do not report a mean without a spread (std/CI)."
+  ],
+  "qa": [
+   {
+    "q": "Two fair dice: probability the sum is 7?",
+    "a": "6 of the 36 equally likely outcomes ((1,6),(2,5),(3,4),(4,3),(5,2),(6,1)) so 6/36 = 1/6."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. Simulate 10,000 dice-sum experiments and compare with the exact distribution. 2. Sample means of an exponential distribution for n=1,5,50 - plot the histograms and watch the CLT. 3. Reproduce the 8.8% Bayes result by simulation."
+   }
+  ]
+ },
+ {
+  "id": "m-linreg",
+  "phase": "math-ml",
+  "group": "2 · Classical ML",
+  "title": "Linear regression: least squares, normal equation, ridge and lasso",
+  "tagline": "The simplest model, and the template for almost everything: model, loss, optimise, regularise.",
+  "viz": "bias-variance",
+  "explain": "**Model**: $\\hat y=w^\\top x+b$. **Loss** (mean squared error): $L(w)=\\tfrac1n\\sum_i(w^\\top x_i-y_i)^2=\\tfrac1n\\|Xw-y\\|^2$ (absorb $b$ as a constant feature).\n\n**Two ways to solve**\n- **Closed form (normal equation)**: set $\\nabla L=0\\Rightarrow X^\\top Xw=X^\\top y\\Rightarrow w^*=(X^\\top X)^{-1}X^\\top y$. Costs $O(nd^2+d^3)$; fails when features are collinear ($X^\\top X$ singular).\n- **Gradient descent**: $w\\leftarrow w-\\eta\\,\\tfrac2n X^\\top(Xw-y)$. Scales to huge data; convex so it reaches the global optimum.\n\n**Geometry**: $Xw^*$ is the orthogonal projection of $y$ onto the column space of $X$; the residual is perpendicular to every feature.\n\n**Regularisation** fights overfitting (see the bias-variance lab, raise the degree then add $\\lambda$):\n- **Ridge (L2)**: $\\min\\|Xw-y\\|^2+\\lambda\\|w\\|^2\\Rightarrow w=(X^\\top X+\\lambda I)^{-1}X^\\top y$ - always invertible, shrinks weights.\n- **Lasso (L1)**: $+\\lambda\\|w\\|_1$ - drives some weights to exactly 0 (feature selection) because the L1 ball has corners.\n- **Elastic net**: both.\n\n**Assumptions for inference** (matter for papers): linearity, independent errors, constant variance (homoscedasticity), roughly normal residuals, no strong multicollinearity. Metrics: MSE, RMSE, MAE, $R^2=1-\\dfrac{\\sum(y-\\hat y)^2}{\\sum(y-\\bar y)^2}$.\n\n**Probabilistic view**: least squares is the maximum-likelihood estimate under Gaussian noise; ridge is MAP with a Gaussian prior.",
+  "tradeoffs": [
+   "Interpretable and fast, but only captures linear relations (add polynomial/interaction features or move to trees/NNs).",
+   "Ridge keeps all features (stable); lasso selects features but is unstable when features are correlated."
+  ],
+  "pitfalls": [
+   "Not scaling features before ridge/lasso/GD - penalty and convergence depend on scale.",
+   "Extrapolating far outside the training range.",
+   "High $R^2$ on training data with many features (adjusted $R^2$/validation instead).",
+   "Leaving outliers: squared loss is sensitive - consider Huber/MAE."
+  ],
+  "interview": [
+   "Derive the normal equation.",
+   "Why does L1 produce sparsity and L2 does not?",
+   "What happens if two features are perfectly correlated?"
+  ],
+  "use": [
+   "Strong baseline, interpretable effects, small tabular data, quick sanity check for any regression problem."
+  ],
+  "avoid": [
+   "Do not use plain least squares with more features than examples without regularisation."
+  ],
+  "qa": [
+   {
+    "q": "Derive $w^*$.",
+    "a": "$L=\\|Xw-y\\|^2=w^\\top X^\\top Xw-2y^\\top Xw+y^\\top y$. $\\nabla L=2X^\\top Xw-2X^\\top y=0\\Rightarrow X^\\top Xw=X^\\top y$."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. Fit a line with np.linalg.lstsq and by gradient descent; compare. 2. Add 30 noise features and watch test error; fix with ridge. 3. Use lasso on a dataset and list the surviving features. 4. Derive ridge as MAP with a Gaussian prior."
+   }
+  ]
+ },
+ {
+  "id": "m-logreg",
+  "phase": "math-ml",
+  "group": "2 · Classical ML",
+  "title": "Logistic regression and classification",
+  "tagline": "Linear model + sigmoid + cross-entropy: the template for every classifier head.",
+  "viz": "softmax-lab",
+  "explain": "For binary labels $y\\in\\{0,1\\}$ model the probability: $P(y=1\\mid x)=\\sigma(w^\\top x+b)$, $\\sigma(z)=\\dfrac{1}{1+e^{-z}}$. The quantity $z$ is the **log-odds**: $\\log\\frac{p}{1-p}=w^\\top x+b$, so each weight is a change in log-odds per unit feature.\n\n**Loss**: maximum likelihood gives binary cross-entropy $L=-\\tfrac1n\\sum[y\\log p+(1-y)\\log(1-p)]$. It is convex in $w$. Its gradient is beautifully simple:\n\n```math\n\\nabla_wL=\\tfrac1n X^\\top(p-y)\n```\n\nThe **decision boundary** $w^\\top x+b=0$ is a hyperplane; the threshold (default 0.5) trades precision for recall. Multi-class: **softmax** regression with $p_k=\\mathrm{softmax}(W x)_k$ and categorical cross-entropy (try the softmax lab).\n\n**Why not MSE for classification?** With a sigmoid it gives non-convex loss and vanishing gradients when confidently wrong; cross-entropy does not.\n\n**Regularise** with L2 (default in scikit-learn, $C=1/\\lambda$). **Separable data**: without regularisation weights grow to infinity. **Class imbalance**: use class weights, resampling, or threshold tuning; judge by PR-AUC rather than accuracy.",
+  "tradeoffs": [
+   "Well-calibrated, fast and interpretable but linear in the features.",
+   "Threshold choice is a business decision, not a modelling one."
+  ],
+  "pitfalls": [
+   "Reporting accuracy on imbalanced data.",
+   "Perfect separation causing diverging coefficients.",
+   "Unscaled features slowing convergence.",
+   "Interpreting coefficients as causal."
+  ],
+  "interview": [
+   "Derive the gradient of logistic loss.",
+   "Why is it a linear classifier although it has a sigmoid?",
+   "How do you choose the threshold?"
+  ],
+  "use": [
+   "Baseline classifier, risk scores, calibrated probabilities, final layer of neural nets."
+  ],
+  "avoid": [
+   "Do not expect it to learn XOR-like interactions without feature engineering."
+  ],
+  "qa": [
+   {
+    "q": "Show $\\sigma'(z)=\\sigma(z)(1-\\sigma(z))$.",
+    "a": "$\\sigma=(1+e^{-z})^{-1}$, $\\sigma'=e^{-z}(1+e^{-z})^{-2}=\\sigma\\cdot\\frac{e^{-z}}{1+e^{-z}}=\\sigma(1-\\sigma)$."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. Implement logistic regression with gradient descent in NumPy. 2. Plot the decision boundary on 2-D blobs. 3. Move the threshold and plot the precision-recall tradeoff. 4. Make the classes 95/5 imbalanced and compare accuracy to PR-AUC."
+   }
+  ]
+ },
+ {
+  "id": "m-trees",
+  "phase": "math-ml",
+  "group": "2 · Classical ML",
+  "title": "Decision trees, random forests and gradient boosting",
+  "tagline": "The dominant family for tabular data: know how splits are chosen and why ensembles win.",
+  "viz": null,
+  "explain": "A **decision tree** recursively splits the data with axis-aligned questions (\"age < 30?\"). At each node choose the split that most reduces **impurity**:\n\n```math\n\\text{Gini}=1-\\sum_k p_k^2,\\qquad H=-\\sum_k p_k\\log_2 p_k,\\qquad \\text{Gain}=I(\\text{parent})-\\sum_{c}\\tfrac{n_c}{n}I(c)\n```\n\n(regression trees minimise variance/MSE in each leaf). Leaves predict the majority class or mean. A single deep tree **overfits** (low bias, high variance); limit depth, min samples per leaf, or prune.\n\n**Bagging / Random Forest**: train many trees on bootstrap samples, with a random subset of features at each split, and average. Averaging $B$ de-correlated high-variance trees cuts variance by up to $1/B$ without raising bias. Free validation: **out-of-bag** error.\n\n**Gradient boosting** (XGBoost, LightGBM, CatBoost): build trees *sequentially*, each fitting the **negative gradient** (pseudo-residuals) of the loss at the current ensemble: $F_m=F_{m-1}+\\eta\\,h_m$, with $h_m\\approx-\\partial L/\\partial F$. For squared loss that is literally fitting the residuals. Key knobs: number of trees, learning rate $\\eta$ (small + more trees is better), depth (3-8), subsampling, L1/L2 on leaf weights, early stopping on validation.\n\n**Why they win on tabular data**: handle mixed types and missing values, invariant to monotonic feature scaling, capture interactions automatically, need little preprocessing.",
+  "tradeoffs": [
+   "Forest: robust, hard to overfit, parallel. Boosting: higher accuracy but needs tuning and early stopping, sequential.",
+   "Trees cannot extrapolate beyond the training range and are piecewise-constant."
+  ],
+  "pitfalls": [
+   "Deep unpruned single tree as the 'final' model.",
+   "Impurity-based feature importance is biased toward high-cardinality features - use permutation importance/SHAP.",
+   "Target leakage through ID-like or future features.",
+   "Tuning boosting without early stopping."
+  ],
+  "interview": [
+   "How does a tree choose a split?",
+   "Bagging vs boosting: bias/variance view?",
+   "Why prefer gradient boosting over a neural net for tabular data?"
+  ],
+  "use": [
+   "Tabular prediction, feature interactions, fast strong baselines, Kaggle-style problems."
+  ],
+  "avoid": [
+   "Do not use trees for images/text/raw signals or when extrapolation is required."
+  ],
+  "qa": [
+   {
+    "q": "Why does random forest sample features at each split?",
+    "a": "To de-correlate the trees. Averaging variance is $\\rho\\sigma^2+\\frac{1-\\rho}{B}\\sigma^2$; reducing the correlation $\\rho$ between trees lowers the floor that more trees cannot go below."
+   }
+  ],
+  "compare": [
+   {
+    "title": "Tree-based methods",
+    "head": [
+     "Method",
+     "Reduces",
+     "Training",
+     "Typical use"
+    ],
+    "rows": [
+     [
+      "Single tree",
+      "-",
+      "fast",
+      "interpretability, rules"
+     ],
+     [
+      "Random forest",
+      "variance",
+      "parallel",
+      "robust default"
+     ],
+     [
+      "Gradient boosting",
+      "bias (and variance with regularisation)",
+      "sequential",
+      "best accuracy on tabular"
+     ]
+    ]
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. Compute Gini gain for a split by hand. 2. Fit a tree at depth 1..20 and plot train/validation accuracy. 3. Compare RandomForest vs LightGBM with early stopping on a tabular dataset. 4. Get permutation importance and compare with impurity importance."
+   }
+  ]
+ },
+ {
+  "id": "m-knn-svm-nb",
+  "phase": "math-ml",
+  "group": "2 · Classical ML",
+  "title": "k-NN, SVM, Naive Bayes: three different ideas",
+  "tagline": "Instance-based, margin-based and generative classifiers - and when each is the right baseline.",
+  "viz": null,
+  "explain": "**k-Nearest Neighbours**: predict by majority/mean of the $k$ closest training points. No training, all cost at prediction time; needs a good distance (scale features!) and suffers in high dimensions (distances concentrate - the curse of dimensionality). Small $k$ = high variance, large $k$ = high bias.\n\n**Support Vector Machine**: choose the hyperplane that maximises the **margin** $2/\\|w\\|$. Soft-margin objective with hinge loss:\n\n```math\n\\min_{w,b}\\ \\tfrac12\\|w\\|^2+C\\sum_i\\max\\big(0,\\,1-y_i(w^\\top x_i+b)\\big)\n```\n\nOnly **support vectors** (points on/inside the margin) matter. The **kernel trick** replaces $x^\\top x'$ by $k(x,x')$ (RBF $e^{-\\gamma\\|x-x'\\|^2}$) to get nonlinear boundaries without computing the features. $C$: large = fit training data hard (overfit); $\\gamma$: large = very local boundaries.\n\n**Naive Bayes**: Bayes' rule with the \"naive\" assumption that features are independent given the class: $P(y\\mid x)\\propto P(y)\\prod_jP(x_j\\mid y)$. Train by counting; very fast, works well for text (bag of words) and small data despite the false assumption; use Laplace smoothing for unseen words.\n\n**Choosing**: kNN as a quick non-parametric baseline and for retrieval; SVM on small/medium, high-dimensional data (text, genomics); Naive Bayes for a very fast text baseline.",
+  "tradeoffs": [
+   "SVM kernel training is $O(n^2$-$n^3)$ - does not scale past ~100k samples; linear SVM does.",
+   "Naive Bayes probabilities are poorly calibrated though rankings are often good."
+  ],
+  "pitfalls": [
+   "No feature scaling for kNN/SVM.",
+   "Tuning $C,\\gamma$ on the test set - use cross-validation.",
+   "kNN in hundreds of dimensions without dimensionality reduction.",
+   "Zero probabilities in Naive Bayes without smoothing."
+  ],
+  "interview": [
+   "Explain the margin and support vectors.",
+   "What is the kernel trick?",
+   "Why does Naive Bayes work despite the independence assumption being false?"
+  ],
+  "use": [
+   "Small/medium datasets, text baselines, nearest-neighbour retrieval ideas that lead to vector search."
+  ],
+  "avoid": [
+   "Do not use kernel SVM on millions of rows."
+  ],
+  "qa": [
+   {
+    "q": "What does the curse of dimensionality do to kNN?",
+    "a": "In high dimensions the ratio of nearest to farthest distance approaches 1, so 'nearest' stops being meaningful; you need far more data, feature selection or learned embeddings."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. kNN from scratch with NumPy; plot error vs k. 2. SVM with RBF: grid-search C and gamma with cross-validation. 3. Naive Bayes spam filter with smoothing."
+   }
+  ]
+ },
+ {
+  "id": "m-clustering",
+  "phase": "math-ml",
+  "group": "2 · Classical ML",
+  "title": "Unsupervised learning: k-means, GMM/EM, PCA, DBSCAN",
+  "tagline": "Find structure without labels - and learn the EM algorithm that reappears in latent-variable models.",
+  "viz": "kmeans-lab",
+  "explain": "**k-means** minimises within-cluster variance $\\sum_k\\sum_{x\\in C_k}\\|x-\\mu_k\\|^2$ by alternating (1) assign each point to the nearest centroid, (2) set each centroid to the mean of its points (Lloyd's algorithm). Each step cannot increase the objective, so it converges - but only to a *local* optimum; use k-means++ initialisation and several restarts. It assumes roughly spherical, equally sized clusters and needs $k$ (elbow, silhouette score, gap statistic).\n\n**Gaussian mixture model + EM**: $p(x)=\\sum_k\\pi_k\\mathcal N(x\\mid\\mu_k,\\Sigma_k)$. **E-step**: responsibilities $r_{ik}=\\dfrac{\\pi_k\\mathcal N(x_i|\\mu_k,\\Sigma_k)}{\\sum_j\\pi_j\\mathcal N(x_i|\\mu_j,\\Sigma_j)}$. **M-step**: re-estimate $\\pi,\\mu,\\Sigma$ using $r_{ik}$ as soft counts. k-means is the hard-assignment, equal-spherical-variance limit of GMM. EM maximises a lower bound on the log-likelihood each iteration - the same idea as the VAE's ELBO.\n\n**PCA** (dimensionality reduction): project onto the top-$k$ eigenvectors of the covariance matrix (see the linear-algebra concept); choose $k$ by explained variance. **t-SNE/UMAP** are for visualisation only - distances and cluster sizes in the plot are not reliable.\n\n**DBSCAN**: density-based; core points have $\\ge$ minPts neighbours within radius $\\varepsilon$; finds arbitrary shapes and flags noise, no $k$ needed, but struggles with varying density.\n\n**Evaluating without labels**: silhouette score $s=\\dfrac{b-a}{\\max(a,b)}$, Davies-Bouldin; better: downstream task performance or stability across resamples.",
+  "tradeoffs": [
+   "k-means is fast and simple but rigid; GMM gives soft, elliptical clusters at higher cost; DBSCAN finds shapes but needs tuning of $\\varepsilon$.",
+   "PCA is linear and interpretable; non-linear methods preserve local structure but distort global distances."
+  ],
+  "pitfalls": [
+   "Not scaling features before k-means.",
+   "Interpreting t-SNE cluster distances/sizes.",
+   "Choosing $k$ only by the elbow without checking stability.",
+   "Running k-means on categorical data."
+  ],
+  "interview": [
+   "Walk through the EM algorithm for a GMM.",
+   "How do you choose k?",
+   "How are PCA and SVD related?"
+  ],
+  "use": [
+   "Customer segmentation, anomaly detection, compression, visualisation, initialising or analysing embeddings."
+  ],
+  "avoid": [
+   "Do not present unsupervised clusters as 'ground truth' categories."
+  ],
+  "qa": [
+   {
+    "q": "Why does k-means always converge?",
+    "a": "Each assignment step and each mean-update step can only decrease (or keep) the objective, which is bounded below, and there are finitely many assignments - so it converges, but to a local minimum."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. Implement k-means in 25 lines of NumPy; compare with 1 vs 10 restarts. 2. Fit a GMM with EM and plot soft assignments. 3. PCA of MNIST to 2-D and 50-D; measure explained variance. 4. DBSCAN on two-moons vs k-means."
+   }
+  ]
+ },
+ {
+  "id": "m-cv-protocol",
+  "phase": "math-ml",
+  "group": "3 · Evaluation (do this before trusting numbers)",
+  "title": "Evaluation protocol: splits, cross-validation, tuning and leakage",
+  "tagline": "The most common source of wrong results in papers and projects.",
+  "viz": null,
+  "explain": "**Three sets**: **train** (fit parameters), **validation** (choose hyperparameters/models), **test** (touched *once* for the final number). Typical 60/20/20 or 70/15/15; for time series split chronologically; for grouped data (patients, users, documents) split by *group*.\n\n**k-fold cross-validation**: split into $k$ folds, train on $k-1$, validate on the held-out one, average the $k$ scores (and report the std). Use **stratified** folds for classification with imbalance. **Nested CV** (inner loop for tuning, outer for estimating) gives an unbiased estimate when you tune a lot.\n\n**Data leakage** - information from validation/test leaking into training - inflates results:\n- fitting scaler/imputer/PCA/feature selection on all data *before* splitting (fit inside the training fold only - use a Pipeline);\n- duplicates/near-duplicates across splits; same patient/user in both;\n- using future information (time leakage) or the label as a hidden feature (target leakage);\n- repeatedly tuning on the test set.\n\n**Baselines first**: a dummy model (majority class/mean), a simple linear model, a tree ensemble. If your fancy model barely beats the dummy, the problem is the data/metric, not the model.\n\n**Learning curves** (score vs training size) diagnose: high gap = variance (more data/regularise), both low = bias (bigger model/better features).",
+  "tradeoffs": [
+   "More folds = less bias but more compute and higher variance of the estimate.",
+   "A held-out test set is clean but wastes data; CV uses data efficiently but is easier to leak."
+  ],
+  "pitfalls": [
+   "Preprocessing on the full dataset before CV.",
+   "Random split of time-ordered data.",
+   "Reporting the best CV score after trying hundreds of configs as the expected performance.",
+   "Ignoring group structure."
+  ],
+  "interview": [
+   "Why must the scaler be fit only on the training fold?",
+   "When do you use nested cross-validation?",
+   "How do you split time-series data?"
+  ],
+  "use": [
+   "Every experiment you will ever report."
+  ],
+  "avoid": [
+   "Do not tune on the test set, ever - even 'just once to check'."
+  ],
+  "qa": [
+   {
+    "q": "Cross-validation score 0.95, production score 0.70. Why?",
+    "a": "Likely leakage or distribution shift: preprocessing before the split, duplicates/groups across folds, future data in features, or the production population differs from the training sample. Audit the pipeline, split by group/time, and compare feature distributions."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. Build a scikit-learn Pipeline (impute -> scale -> model) and run stratified 5-fold CV. 2. Deliberately leak (scale before split) and measure the optimism. 3. Plot learning curves for a tree and a linear model."
+   }
+  ]
+ },
+ {
+  "id": "m-nn-basics",
+  "phase": "math-ml",
+  "group": "4 · Neural networks (the bridge)",
+  "title": "Neural networks from scratch: perceptron, MLP, activations, training loop",
+  "tagline": "Stack linear layers with nonlinearities; train with backprop + gradient descent.",
+  "viz": "backprop-lab",
+  "explain": "A **neuron** computes $a=\\phi(w^\\top x+b)$. A **layer** does it for many neurons at once: $a=\\phi(Wx+b)$. An **MLP** stacks layers: $\\hat y=W_3\\,\\phi(W_2\\,\\phi(W_1x+b_1)+b_2)+b_3$. Without the nonlinearity $\\phi$ any depth collapses to one linear map ($W_3W_2W_1x$).\n\n**Activations**: sigmoid $\\sigma$ (saturates, gradient $\\le0.25$), tanh, **ReLU** $\\max(0,z)$ (cheap, no saturation for $z>0$, but \"dying ReLU\"), GELU/SiLU (smooth, used in transformers), softmax (output layer for classes).\n\n**Universal approximation**: a wide enough one-hidden-layer network can approximate any continuous function on a compact set - but it says nothing about how to *find* the weights or how many neurons are needed; depth gives exponentially more efficient representations for compositional functions.\n\n**Training loop** (every deep learning codebase):\n\n```\nfor epoch:\n    for batch in data:\n        pred = model(x)              # forward\n        loss = loss_fn(pred, y)\n        loss.backward()              # backprop: gradients via the chain rule\n        optimizer.step()             # update weights\n        optimizer.zero_grad()\n```\n\n**Initialisation** matters (He/Xavier keep activations and gradients at stable scale); **normalisation** layers and **residual connections** make deep nets trainable; **dropout** and weight decay regularise. Use the backprop lab to see forward values and backward gradients on one neuron, then scale up in your head: the same local rule is applied at every node.",
+  "tradeoffs": [
+   "MLPs are flexible but data-hungry and less competitive than trees on small tabular data.",
+   "Depth increases expressiveness and difficulty of optimisation."
+  ],
+  "pitfalls": [
+   "Forgetting the nonlinearity.",
+   "All-zero or too-large initialisation (symmetry / exploding signals).",
+   "Not shuffling data; not normalising inputs.",
+   "Evaluating with dropout still on (forgetting model.eval())."
+  ],
+  "interview": [
+   "Why do we need nonlinear activations?",
+   "Why does ReLU help versus sigmoid?",
+   "Walk through one training step."
+  ],
+  "use": [
+   "Learning representations on images/text/signals; the base for everything in the modern-ML stage."
+  ],
+  "avoid": [
+   "Do not reach for a deep net before a tuned gradient-boosting baseline on small tabular data."
+  ],
+  "qa": [
+   {
+    "q": "Can a single perceptron learn XOR?",
+    "a": "No - XOR is not linearly separable. One hidden layer with two nonlinear units solves it, which is the classic motivation for hidden layers."
+   }
+  ],
+  "deep": [
+   {
+    "title": "Exercise ladder",
+    "body": "1. Implement a 2-layer MLP with manual backprop in NumPy and train it on XOR then on two-moons. 2. Gradient-check it. 3. Re-implement in PyTorch and compare. 4. Break it: remove the nonlinearity, set LR=10, zero-init - describe each failure."
+   }
+  ]
+ }
+]

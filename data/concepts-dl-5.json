@@ -1,0 +1,180 @@
+[
+ {
+  "id": "dl-cv-tasks",
+  "phase": "deep-learning",
+  "group": "2 · Convolutional and vision networks",
+  "title": "Computer-vision task atlas: restoration, denoising, super-resolution, face recognition, medical imaging, video and optical flow",
+  "tagline": "For each task: formulation, architecture, loss, metric and the trap that ruins papers.",
+  "viz": "conv-lab",
+  "explain": "**Classification / localisation / detection / segmentation** (see the previous concepts): classification (accuracy, top-5), detection (**mAP@IoU**; YOLO, Faster R-CNN, DETR), semantic/instance/panoptic segmentation (**IoU/mIoU**, Dice; U-Net, Mask R-CNN, SAM), pose estimation (keypoint heatmaps, PCK), depth estimation, 3-D vision (NeRF, Gaussian splatting).\n\n**Image restoration family.** Observation $y=Hx+n$ (blur/downsample $H$, noise $n$); recover $x$.\n- **Denoising**: DnCNN (residual learning: predict the noise), U-Net, Restormer/SwinIR transformers, Noise2Noise / Noise2Void (self-supervised, no clean targets), diffusion priors. Metrics **PSNR** $=10\\log_{10}\\frac{MAX^2}{MSE}$, **SSIM**, LPIPS.\n- **Deblurring / inpainting / dehazing / deraining**: encoder-decoder with skip connections, multi-scale and GAN/perceptual losses (VGG features), mask-aware convs.\n- **Super-resolution (SR)**: SRCNN → **EDSR** (residual blocks, no BN) → **SRGAN/ESRGAN** (perceptual + adversarial loss, sharper but hallucinates) → SwinIR → diffusion SR. **Sub-pixel convolution (PixelShuffle)** upsamples efficiently. Trade-off: **perception-distortion** - PSNR-optimised models are blurry, GAN models look sharp with lower PSNR.\n- **Colourisation, HDR, low-light enhancement, style transfer** (Gatys: match Gram matrices of VGG features; fast feed-forward and AdaIN variants).\n\n**Face analysis.** Detection (MTCNN, RetinaFace), alignment, **recognition**: embed faces with a CNN trained with **angular-margin softmax** (ArcFace/CosFace/SphereFace: $\\cos(\\theta+m)$ increases inter-class margin) and compare by cosine similarity; verification (same/different, ROC at fixed FAR) vs identification (rank-1). Also attributes, emotion, anti-spoofing. **Ethics**: demographic bias, consent, surveillance, legal limits.\n\n**Medical imaging.** Modalities: X-ray, CT, MRI, ultrasound, histopathology (gigapixel whole-slide images), fundus, dermoscopy. Tasks: diagnosis, lesion detection, organ/tumour **segmentation** (U-Net, nnU-Net, Dice + cross-entropy, Tversky/focal for tiny lesions), registration, report generation. Realities: small labelled sets (transfer learning from ImageNet/medical SSL, augmentation), **class imbalance**, **patient-level splits** (never split slices of one patient across train/test), multi-centre **domain shift** (scanner/protocol), inter-rater variability, calibration, explainability (Grad-CAM), regulatory (FDA/CE) and external validation. Metrics: AUC, sensitivity at fixed specificity, Dice, Hausdorff distance, calibration.\n\n**Video and action recognition.** Add time: **two-stream** (RGB + optical flow), **3D CNNs** (C3D, I3D, SlowFast), **(2+1)D** factorised conv, **video Transformers** (TimeSformer, ViViT, VideoMAE), temporal segment networks; tasks: action classification (Kinetics, top-1/5), temporal action localisation, tracking (SORT, DeepSORT, ByteTrack), video captioning/QA, anomaly detection in surveillance. Challenge: compute, long-range temporal context, sampling strategy.\n\n**Optical flow.** Estimate per-pixel motion between frames: classic **Horn-Schunck** (brightness constancy + smoothness), **Lucas-Kanade** (local least squares); deep: **FlowNet**, **PWC-Net**, **RAFT** (all-pairs correlation volume + recurrent updates). Metric **EPE** (end-point error). Used for video interpolation, stabilisation, action recognition, SLAM.\n\n**OCR and document AI**: text detection (DBNet) + recognition (CRNN+CTC, TrOCR), layout (LayoutLM), donut. **Remote sensing**, **autonomous driving** (BEV perception, multi-sensor fusion), **industrial inspection** (anomaly detection, PatchCore).",
+  "tradeoffs": [
+   "Perceptual and adversarial losses sharpen images but can hallucinate content - dangerous in medical settings.",
+   "Heavier video models gain accuracy at large compute cost."
+  ],
+  "pitfalls": [
+   "Patient or video leakage across splits.",
+   "Reporting PSNR only for SR with GAN models.",
+   "Face recognition evaluated without demographic breakdown.",
+   "Augmentations that destroy diagnostic signal."
+  ],
+  "interview": [
+   "Why is residual learning used for denoising?",
+   "How does ArcFace improve face embeddings?",
+   "Explain Dice vs IoU."
+  ],
+  "use": [
+   "Pick the task formulation and metric before the architecture; start from pretrained backbones."
+  ],
+  "avoid": [
+   "Never evaluate a medical model without external, patient-level held-out data."
+  ],
+  "qa": [
+   {
+    "q": "Why do GAN super-resolution models score lower PSNR but look better?",
+    "a": "PSNR rewards pixel-wise averaging (blurry mean predictions). Adversarial/perceptual losses push outputs onto the natural-image manifold with sharp textures that don't match ground-truth pixels exactly - the perception-distortion trade-off."
+   }
+  ]
+ },
+ {
+  "id": "dl-ts-classical",
+  "phase": "deep-learning",
+  "group": "8 · Time-series modelling",
+  "title": "Time-series foundations: stationarity, ACF/PACF, decomposition, differencing, ARIMA/SARIMA, exponential smoothing",
+  "tagline": "The statistical vocabulary you need before (and to benchmark against) deep forecasters.",
+  "viz": "timeseries-lab",
+  "explain": "**Time series** $\\{y_t\\}$ are ordered, autocorrelated observations: i.i.d. assumptions fail and splits must respect time.\n\n**Components (decomposition).** Trend $T_t$ + seasonality $S_t$ + residual $R_t$ (additive $y=T+S+R$ or multiplicative $y=T\\cdot S\\cdot R$ - log transform converts one to the other). Methods: classical moving averages, **STL** (LOESS, robust, flexible seasonality), Prophet-style regression, X-13.\n\n**Stationarity.** **Weak stationarity**: constant mean, constant variance, autocovariance depends only on lag. Most classical models require it. Tests: **ADF** (null: unit root ⇒ non-stationary), **KPSS** (null: stationary) - use both. Fixes: **differencing** $\\nabla y_t=y_t-y_{t-1}$ (trend), **seasonal differencing** $y_t-y_{t-s}$, log/Box-Cox for variance, detrending. Over-differencing injects negative autocorrelation.\n\n**ACF / PACF.** Autocorrelation $\\rho_k=\\mathrm{Corr}(y_t,y_{t-k})$; partial autocorrelation removes intermediate lags. Reading: AR($p$) → PACF cuts off after $p$, ACF decays; MA($q$) → ACF cuts off after $q$, PACF decays; seasonality → spikes at multiples of $s$; slow ACF decay → non-stationary. Ljung-Box tests residual whiteness.\n\n**Models.** **AR($p$)**: $y_t=c+\\sum\\phi_iy_{t-i}+\\varepsilon_t$. **MA($q$)**: $y_t=c+\\varepsilon_t+\\sum\\theta_j\\varepsilon_{t-j}$. **ARMA** combines; **ARIMA($p,d,q$)** adds $d$ differences; **SARIMA($p,d,q$)($P,D,Q$)$_s$** adds seasonal terms; **ARIMAX/SARIMAX** exogenous regressors; **VAR** multivariate; **GARCH** volatility clustering; **state-space / Kalman filter**; **Holt-Winters / ETS** exponential smoothing $\\ell_t=\\alpha y_t+(1-\\alpha)(\\ell_{t-1}+b_{t-1})$; **Theta**, **Prophet**, **TBATS**. Box-Jenkins workflow: identify (ACF/PACF) → estimate (MLE) → diagnose (residual ACF, Ljung-Box, normality) → forecast with intervals. Choose by AIC/BIC and out-of-sample error.\n\n**Evaluation**: rolling-origin (walk-forward) validation, horizons h=1..H, **MASE/sMAPE/RMSE**, naive and seasonal-naive baselines (hard to beat!), prediction-interval coverage, Diebold-Mariano test for forecast comparison.\n\n**Feature engineering for ML on time series**: lags, rolling mean/std/min/max, expanding stats, differences, calendar features (day-of-week, holidays), Fourier terms, target encoding by group, leakage-free windows.",
+  "tradeoffs": [
+   "Statistical models are strong on small, single series with interpretable parameters; deep models shine on many related series.",
+   "Differencing makes data stationary but removes level information."
+  ],
+  "pitfalls": [
+   "Random train/test split on time series.",
+   "Using future information in features (leakage).",
+   "Skipping the seasonal-naive baseline.",
+   "Forecasting a non-stationary series with a stationary model."
+  ],
+  "interview": [
+   "How do you decide $p$ and $q$ from ACF/PACF?",
+   "ADF vs KPSS?",
+   "What is walk-forward validation?"
+  ],
+  "use": [
+   "Forecasting baselines, residual diagnostics, preprocessing for neural forecasters."
+  ],
+  "avoid": [
+   "Do not difference more than needed; do not skip diagnostics."
+  ],
+  "qa": [
+   {
+    "q": "A series has ACF decaying slowly. What next?",
+    "a": "It signals a unit root/trend: confirm with ADF/KPSS, difference once (or detrend), recheck the ACF/PACF, then pick AR/MA orders."
+   }
+  ]
+ },
+ {
+  "id": "dl-ts-deep",
+  "phase": "deep-learning",
+  "group": "8 · Time-series modelling",
+  "title": "Deep forecasting: RNN/LSTM, TCN, N-BEATS, Transformers, Informer, Autoformer, PatchTST, Temporal Fusion Transformer",
+  "tagline": "Architectures for long-horizon, multivariate and probabilistic forecasting, and the honest benchmark caveats.",
+  "viz": "timeseries-lab",
+  "explain": "**Setup.** Given a look-back window $y_{t-L+1:t}$ (and covariates), predict horizon $y_{t+1:t+H}$. **Strategies**: recursive (feed predictions back; error accumulates), direct (one model per horizon), **multi-output / seq2seq** (predict all $H$ at once; standard for deep nets). Always scale per series (RevIN - reversible instance normalisation fights distribution shift), use windows with stride, and validate walk-forward.\n\n**Recurrent**: LSTM/GRU encoder-decoder, **DeepAR** (autoregressive RNN across many related series with a likelihood head: Gaussian/neg-binomial → probabilistic forecasts). Limitations: sequential training, long-memory loss.\n\n**Convolutional**: **TCN** (causal + **dilated** convolutions, residual blocks; receptive field grows exponentially with depth; parallel, stable gradients), WaveNet; **N-BEATS / N-HiTS**: stacks of fully-connected blocks with backward/forward residual links, interpretable trend/seasonality bases - a purely MLP model that beat statistical baselines in M4.\n\n**Transformers.** Vanilla attention is $O(L^2)$ and point-wise attention over single time steps is a weak fit.\n- **Informer**: **ProbSparse** self-attention (select dominant queries by KL sparsity measure, $O(L\\log L)$), **self-attention distilling** (halving sequence length per layer), generative-style decoder predicting the whole horizon.\n- **Autoformer**: **series decomposition** blocks (moving-average trend/seasonal split inside the network) + **auto-correlation** mechanism (period-based dependencies discovered via FFT, sub-series aggregation).\n- **FEDformer**: attention in frequency domain (Fourier/wavelet).\n- **PatchTST**: split each channel into **patches** (like ViT tokens), **channel-independent** shared Transformer; longer look-back at lower cost, strong results and self-supervised pretraining.\n- **iTransformer**: attention over **variates** (each series as a token). **TimesNet** (2-D periodicity), **DLinear** (a single linear layer on trend/seasonal parts - showed that many Transformers did not beat simple linear baselines on common benchmarks).\n- **Temporal Fusion Transformer (TFT)**: variable-selection networks, static covariate encoders, LSTM local processing, interpretable multi-head attention, **quantile outputs**; designed for multi-horizon forecasting with known/unknown covariates - interpretable.\n- **Foundation models**: TimeGPT, Chronos (tokenised values + T5), Lag-Llama, Moirai, TimesFM - zero-shot forecasting.\n\n**Training**: loss MSE/MAE/Huber for point, pinball/quantile or NLL for probabilistic; scheduled sampling; ensembling; covariates (calendar, promotions).\n\n**Benchmark caveats for papers**: datasets (ETTh/ETTm, Electricity, Traffic, Weather, M4/M5), **fixed look-back windows and fair hyper-parameter budgets**, report MSE and MAE at all horizons, include DLinear/seasonal-naive/ARIMA baselines, check for **data leakage** (normalisation using future statistics, \"drop-last\" bugs) and use multiple seeds.",
+  "tradeoffs": [
+   "Transformers capture long-range, multivariate structure but are data-hungry and not always better than linear baselines.",
+   "Channel-independent models are robust; channel-mixing can overfit spurious cross-series patterns."
+  ],
+  "pitfalls": [
+   "Look-ahead leakage through global scaling.",
+   "Comparing to weak baselines.",
+   "Reporting only short horizons."
+  ],
+  "interview": [
+   "Why dilated convolutions for forecasting?",
+   "What makes PatchTST work?",
+   "ProbSparse attention - what is sparse?"
+  ],
+  "use": [
+   "Many related series, rich covariates, long horizons, probabilistic needs."
+  ],
+  "avoid": [
+   "Do not use deep models on a single short series; ETS/ARIMA win."
+  ],
+  "qa": [
+   {
+    "q": "Why do simple linear models sometimes beat Transformers on forecasting benchmarks?",
+    "a": "Permutation-invariant point-wise attention loses temporal order information, and benchmark series are dominated by smooth trend/seasonality that a linear map on the look-back window captures with far fewer parameters, so large models overfit."
+   }
+  ]
+ },
+ {
+  "id": "dl-ts-anomaly",
+  "phase": "deep-learning",
+  "group": "8 · Time-series modelling",
+  "title": "Time-series anomaly and change-point detection: forecasting-residual, reconstruction, density, CUSUM, PELT",
+  "tagline": "Find the point, contextual and collective anomalies - and the moment the data-generating process changes.",
+  "viz": "timeseries-lab",
+  "explain": "**Anomaly types**: **point** (single outlier), **contextual** (normal value in wrong context, e.g. 30 °C in winter), **collective** (a subsequence abnormal as a whole). Labels are rare, so methods are mostly unsupervised/semi-supervised (train on normal data).\n\n**Approaches**\n- **Statistical**: rolling z-score / robust (median-MAD), seasonal-hybrid ESD, STL-residual thresholding, control charts (EWMA, Shewhart).\n- **Forecasting-based**: predict the next value with ARIMA/LSTM/TCN/Transformer; anomaly score = |actual − forecast| normalised by the running error scale (e.g. dynamic thresholds in NASA's LSTM-based detection).\n- **Reconstruction-based**: (variational/LSTM/conv) autoencoders on windows; score = reconstruction error; **USAD**, **OmniAnomaly** (stochastic RNN + VAE), **Anomaly Transformer** (association discrepancy), TranAD.\n- **Density / distance**: Isolation Forest on window features, LOF, one-class SVM, matrix profile (**discord discovery** - the subsequence with the largest nearest-neighbour distance), GMM.\n- **Adversarial**: GAN-based (AnoGAN, TadGAN).\n- **Multivariate**: model correlations between channels (graph deviation GDN), Mahalanobis distance, PCA residual (SPE/Hotelling T²).\n\n**Thresholding & evaluation**: pick thresholds from validation percentiles, POT (extreme value theory), dynamic/non-parametric thresholds; metrics on **events** not points - precision/recall/F1 with **point-adjust** (inflates scores - criticised), range-based precision/recall, VUS-PR, time-to-detect; report false alarms per day. Beware benchmark flaws (labels in NAB/Yahoo/SMD).\n\n**Change-point detection (CPD).** Locate times where the distribution (mean, variance, trend) changes.\n- **CUSUM**: $S_t=\\max(0,S_{t-1}+x_t-\\mu_0-k)$, alarm when $S_t>h$; optimal for a known shift (online).\n- **Likelihood-ratio / GLR**, **Bayesian online CPD** (run-length posterior), **PELT** (exact penalised-cost segmentation in $O(n)$, minimise $\\sum\\mathcal C(y_{seg})+\\beta\\cdot\\#\\text{changes}$), binary segmentation, window-based discrepancy, kernel CPD (MMD), **ruptures** library. Deep: TCN/contrastive CPD.\nUse: drift detection in production models, regime changes in finance, equipment degradation, A/B test monitoring.\n\n**Concept drift** (change in $P(y|x)$) vs **data drift** (change in $P(x)$): ADWIN, DDM, Page-Hinkley, KS tests on feature windows; trigger retraining.",
+  "tradeoffs": [
+   "Forecast-residual scores are interpretable; reconstruction models capture multivariate structure but can reconstruct anomalies too.",
+   "Sensitive thresholds yield alert fatigue."
+  ],
+  "pitfalls": [
+   "Point-adjusted F1 reported as if standard F1.",
+   "Training on data containing anomalies.",
+   "Threshold tuned on the test period."
+  ],
+  "interview": [
+   "How would you detect anomalies in server metrics with weekly seasonality?",
+   "CUSUM vs PELT?",
+   "Why is point-adjust criticised?"
+  ],
+  "use": [
+   "Monitoring, IoT, finance, predictive maintenance, MLOps drift alarms."
+  ],
+  "avoid": [
+   "Don't use accuracy on rare-event labels."
+  ],
+  "qa": [
+   {
+    "q": "Why de-seasonalise before thresholding?",
+    "a": "Weekly or daily cycles create regular highs/lows that a global threshold would flag; removing seasonality (STL/forecast residuals) leaves a stationary residual where deviations are genuinely abnormal."
+   }
+  ]
+ },
+ {
+  "id": "dl-hybrid",
+  "phase": "deep-learning",
+  "group": "9 · Hybrid ML-DL models",
+  "title": "Hybrid ML-DL models: CNN-LSTM/GRU/BiLSTM/Transformer, attention hybrids, wavelet hybrids, autoencoder-boosting, stacking and multimodal fusion",
+  "tagline": "How and why to combine components, design ablations that justify the combination, and avoid 'frankenstein' papers.",
+  "viz": null,
+  "explain": "**Rationale.** Each component has a different inductive bias: **CNN** (local patterns/shift invariance), **RNN/LSTM/GRU** (sequential state, short-medium memory), **BiLSTM** (both directions), **Transformer/attention** (global dependencies, parallel), **GNN** (relational structure), **tree ensembles** (tabular interactions), **classical models** (trend, interpretability), **signal processing** (wavelets, EMD, Fourier: multi-scale decomposition). A hybrid is justified only if the *problem* has both kinds of structure.\n\n**Common patterns**\n1. **CNN → LSTM/GRU/BiLSTM** (feature extractor then temporal model): CNN extracts local motifs from windows/spectrograms/EEG; LSTM models their order (activity recognition, load forecasting, ECG).\n2. **CNN-BiLSTM-Attention**: add attention pooling to weight informative time steps/channels; aids interpretability.\n3. **CNN-Transformer / Conformer**: local convolution + global self-attention (speech, vision, time series).\n4. **Autoencoder → classifier/boosting**: AE/VAE compresses features, then XGBoost/SVM classifies; or AE for denoising/anomaly features. **PCA + SVM**, **LDA + KNN**, **feature selection (GA/PSO) + deep net** are classic ML-DL hybrids.\n5. **Wavelet / EMD / VMD decomposition + DL**: decompose a non-stationary signal into sub-bands (db4 wavelets, CEEMDAN), model each with CNN/LSTM, **sum the forecasts**; popular in energy, hydrology, finance, EEG. Pitfall: decomposing the *whole* series before splitting leaks future information - decompose within each window/training fold only.\n6. **Statistical + DL residual hybrids**: ARIMA/ETS for trend, LSTM on the residuals (Smyl's ES-RNN won M4).\n7. **Ensembles & stacking**: average/weighted heterogenous nets; stacking with a meta-learner on out-of-fold predictions; snapshot/seed ensembles.\n8. **Multimodal fusion**: **early fusion** (concatenate raw inputs), **feature-level / intermediate fusion** (concatenate embeddings; cross-attention), **late/decision-level fusion** (combine per-modality predictions: averaging, voting, learned gating). Examples: image + clinical tabular data, audio + video, text + images (CLIP), sensor fusion for driving. Handle missing modalities (modality dropout), alignment, differing sampling rates.\n9. **Physics/knowledge-guided hybrids** (PINNs, grey-box models), **neuro-symbolic** systems, retrieval-augmented models.\n\n**Designing a defensible hybrid**: (a) strong simple baselines (each component alone, plus well-tuned tree/linear models), (b) **ablation table** removing each block, (c) same tuning budget for all, (d) multiple seeds + significance tests, (e) complexity (params, FLOPs, latency), (f) show the combination wins for a *reason* (error analysis by regime), (g) release code and seeds.\n\n**Reviewer red flags**: stacking many modules without ablation, tuning only the proposed model, leakage via decomposition/scaling, tiny test sets, \"novelty\" that is just a new combination of known blocks.",
+  "tradeoffs": [
+   "Hybrids can exploit complementary strengths but multiply hyper-parameters, cost and failure modes.",
+   "More components rarely help when data is small."
+  ],
+  "pitfalls": [
+   "Leakage from global decomposition/normalisation.",
+   "No component-wise ablation.",
+   "Comparing hybrids to un-tuned baselines.",
+   "Over-claiming interpretability from attention maps."
+  ],
+  "interview": [
+   "Why a CNN before an LSTM for sensor data?",
+   "Early vs late fusion trade-offs?",
+   "How would you show each block of your hybrid matters?"
+  ],
+  "use": [
+   "Signals, EEG/ECG, energy and finance forecasting, multimodal medical/industrial problems."
+  ],
+  "avoid": [
+   "Avoid a hybrid when a tuned gradient-boosting or single transformer baseline matches it."
+  ],
+  "qa": [
+   {
+    "q": "How can wavelet decomposition leak information?",
+    "a": "Wavelet/EMD transforms of the full series use future samples when computing coefficients near the boundary; training windows then contain information from the test period. Apply the decomposition causally within each window or fold."
+   }
+  ]
+ }
+]

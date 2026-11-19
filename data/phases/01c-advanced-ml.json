@@ -1,0 +1,101 @@
+{
+  "id": "advanced-ml",
+  "title": "Advanced Machine Learning and Reinforcement Learning",
+  "tagline": "Kernel methods, probabilistic graphical models, EM, HMM/CRF, evolutionary optimisation, causal ML, federated/transfer/active/online/continual/meta-learning, AutoML and the full reinforcement-learning stack.",
+  "level": "advanced",
+  "color": "#f472b6",
+  "icon": "🔭",
+  "short": "Advanced ML + RL",
+  "topics": [
+    {
+      "id": "kernels-pgm",
+      "title": "Kernels and probabilistic models",
+      "summary": "Kernel methods, latent-variable models, sequence models and graphical models.",
+      "items": [
+        "Kernel methods, Mercer kernels, RKHS, representer theorem, kernel ridge",
+        "Gaussian processes (regression and classification), kernel design",
+        "Expectation-Maximisation and Gaussian mixture derivation",
+        "Hidden Markov Models: forward, Viterbi, Baum-Welch",
+        "Conditional Random Fields for sequence labelling",
+        "Bayesian networks, d-separation, Markov random fields",
+        "Probabilistic graphical models: exact and approximate inference, structure learning",
+        "Monte Carlo, importance sampling, MCMC (MH, Gibbs, HMC)",
+        "Variational inference and the ELBO"
+      ],
+      "questions": [
+        "Derive the E-step and M-step for a GMM.",
+        "Explain d-separation with a collider.",
+        "Forward vs reverse KL in variational inference?"
+      ],
+      "resources": ["Pattern Recognition and Machine Learning (Bishop)", "Probabilistic Machine Learning (Murphy)", "CMU 10-708"]
+    },
+    {
+      "id": "metaheuristics",
+      "title": "Evolutionary computation and metaheuristics",
+      "summary": "Gradient-free global optimisation for hard, non-differentiable problems.",
+      "items": [
+        "Genetic Algorithms: selection, crossover, mutation, elitism",
+        "Particle Swarm Optimisation",
+        "Ant Colony Optimisation",
+        "Simulated Annealing",
+        "Differential Evolution and CMA-ES",
+        "Multi-objective optimisation: Pareto dominance, NSGA-II, hypervolume",
+        "Benchmarking metaheuristics (30 runs, Wilcoxon/Friedman)",
+        "Metaheuristics for feature selection and hyper-parameter search"
+      ],
+      "questions": [
+        "Exploration vs exploitation in PSO?",
+        "Why does a weighted sum miss non-convex Pareto fronts?"
+      ],
+      "resources": ["Essentials of Metaheuristics (Luke)", "pymoo and DEAP libraries"]
+    },
+    {
+      "id": "learning-paradigms",
+      "title": "Learning paradigms beyond supervised learning",
+      "summary": "Causal, federated, transfer, active, online, continual, meta-learning and AutoML.",
+      "items": [
+        "Causal inference: potential outcomes, DAGs, do-calculus, propensity scores",
+        "Causal ML: meta-learners, causal forests, double ML, uplift modelling",
+        "Federated learning: FedAvg, non-IID, FedProx, secure aggregation",
+        "Differential privacy and DP-SGD",
+        "Transfer learning and fine-tuning strategies",
+        "Semi-supervised learning: pseudo-labels, consistency regularisation",
+        "Active learning: uncertainty, query-by-committee, core-set",
+        "Online learning, regret, bandits, concept drift",
+        "Continual learning: EWC, replay, forgetting metrics",
+        "Meta-learning: MAML, prototypical networks",
+        "AutoML and Neural Architecture Search"
+      ],
+      "questions": [
+        "Why isn't a lasso-selected feature a cause?",
+        "Why does non-IID data slow FedAvg?",
+        "Explain MAML's inner and outer loops."
+      ],
+      "resources": ["Causal Inference: What If (Hernan & Robins)", "Advances and Open Problems in Federated Learning (Kairouz et al.)"]
+    },
+    {
+      "id": "reinforcement-learning",
+      "title": "Reinforcement learning",
+      "summary": "MDPs to PPO and SAC: theory, algorithms and practical recipes.",
+      "items": [
+        "Markov decision processes, returns, value functions",
+        "Bellman expectation and optimality equations",
+        "Dynamic programming: policy evaluation, policy iteration, value iteration",
+        "Monte Carlo methods and temporal-difference learning, TD(lambda)",
+        "SARSA and Q-learning, exploration strategies",
+        "Function approximation and the deadly triad",
+        "DQN, Double DQN, Dueling, Prioritised replay, Rainbow",
+        "Policy gradient, REINFORCE, baselines, GAE",
+        "Actor-Critic, A2C/A3C, TRPO, PPO",
+        "DDPG, TD3, SAC (maximum-entropy RL)",
+        "Model-based RL, imitation and offline RL overview"
+      ],
+      "questions": [
+        "SARSA vs Q-learning on the cliff-walking task?",
+        "Why does PPO clip the probability ratio?",
+        "What does SAC's entropy term achieve?"
+      ],
+      "resources": ["Sutton & Barto: Reinforcement Learning", "OpenAI Spinning Up", "Berkeley CS285"]
+    }
+  ]
+}

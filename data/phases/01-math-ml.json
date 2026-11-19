@@ -200,6 +200,37 @@
         "Papers With Code reproducibility checklist",
         "NeurIPS paper checklist"
       ]
+    },
+    {
+      "id": "math-reference",
+      "title": "Complete math reference (linear algebra, calculus, probability, statistics, optimisation)",
+      "summary": "Every named topic of the university syllabus, one checklist.",
+      "items": [
+        "Vector spaces, basis, dimension, rank, null space, rank-nullity",
+        "Determinant, inverse, trace, norms (l1, l2, Frobenius, spectral), distances (Mahalanobis, cosine)",
+        "Projections, orthogonal matrices, Gram-Schmidt, QR, LU, Cholesky, eigen-decomposition, SVD, NMF",
+        "Positive (semi-)definite matrices and the spectral theorem; condition number",
+        "Limits, continuity, derivatives, chain rule, partial derivatives, gradient, directional derivative",
+        "Jacobian, Hessian, Taylor series, maxima/minima/saddles, convexity",
+        "Integration, change of variables, Monte Carlo; divergence, curl, Laplacian",
+        "Probability axioms, conditional probability, Bayes, independence, joint/marginal/conditional",
+        "PMF/PDF/CDF, expectation, variance, covariance, correlation; key discrete and continuous distributions",
+        "Law of large numbers, central limit theorem, concentration inequalities, MLE, MAP",
+        "Descriptive and inferential statistics, confidence intervals, hypothesis testing, p-values, power",
+        "z/t/chi-square tests, ANOVA, Pearson/Spearman correlation, Bayesian statistics, bootstrap",
+        "Convex sets/functions, gradient descent family, Newton, quasi-Newton, L-BFGS, conjugate gradient",
+        "Lagrange multipliers, KKT conditions, duality, constrained optimisation, learning-rate scheduling"
+      ],
+      "questions": [
+        "Why is a covariance matrix positive semi-definite?",
+        "Derive Newton's update from the Taylor expansion.",
+        "Zero correlation vs independence: give a counterexample."
+      ],
+      "resources": [
+        "Mathematics for Machine Learning (Deisenroth et al.)",
+        "Convex Optimization (Boyd & Vandenberghe)",
+        "All of Statistics (Wasserman)"
+      ]
     }
   ]
 }

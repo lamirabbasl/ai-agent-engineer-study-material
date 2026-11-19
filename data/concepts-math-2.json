@@ -1,0 +1,227 @@
+[
+ {
+  "id": "m-linalg-full",
+  "phase": "math-ml",
+  "group": "1 · Foundations",
+  "title": "Linear algebra complete reference: vector spaces, rank, determinants, factorisations",
+  "tagline": "Every linear-algebra object the ML syllabus names, with the one fact you must remember about each.",
+  "viz": "matrix-lab",
+  "explain": "**Scalars, vectors, matrices, tensors.** A scalar is a number, a vector $x\\in\\mathbb R^n$ a column of numbers, a matrix $A\\in\\mathbb R^{m\\times n}$ a grid, a tensor an $n$-dimensional array (images are $H\\times W\\times C$). Matrix multiplication $C=AB$ with $C_{ij}=\\sum_kA_{ik}B_{kj}$ requires inner dimensions to match, is associative and distributive but **not commutative**. Transpose: $(AB)^\\top=B^\\top A^\\top$. Inverse: $AA^{-1}=I$, exists only for square full-rank matrices, $(AB)^{-1}=B^{-1}A^{-1}$.\n\n**Linear independence, span, basis, dimension.** Vectors $v_1..v_k$ are independent if $\\sum c_iv_i=0$ only for $c=0$. A **basis** is an independent set that spans the space; the number of vectors is the **dimension**. Every vector has unique coordinates in a basis. Changing basis is multiplying by an invertible matrix; PCA picks the basis aligned with variance.\n\n**Rank.** $\\mathrm{rank}(A)$ = number of independent columns = independent rows = number of non-zero singular values. Rank-nullity: $\\mathrm{rank}(A)+\\dim\\mathrm{null}(A)=n$. Full-rank square matrix ⇔ invertible ⇔ $\\det A\\ne0$. Low rank means redundancy - the reason compression (SVD, LoRA) works.\n\n**Determinant.** $\\det A$ is the signed volume-scaling factor of the map; $\\det(AB)=\\det A\\det B$, $\\det A^{-1}=1/\\det A$, $\\det A=\\prod\\lambda_i$. Zero determinant ⇒ space collapsed, singular. In ML it appears in Gaussian densities ($|\\Sigma|^{-1/2}$) and flows ($\\log|\\det J|$).\n\n**Norms and distances.** $\\|x\\|_p=(\\sum|x_i|^p)^{1/p}$: $\\ell_1$ (Manhattan, sparsity), $\\ell_2$ (Euclidean), $\\ell_\\infty$ (max). Matrix norms: Frobenius $\\sqrt{\\sum a_{ij}^2}$, spectral $\\sigma_{\\max}$. Distances: Euclidean, Manhattan, cosine, Mahalanobis $\\sqrt{(x-\\mu)^\\top\\Sigma^{-1}(x-\\mu)}$ (accounts for correlation).\n\n**Projections and orthogonality.** Projection of $b$ onto the column space of $A$: $p=A(A^\\top A)^{-1}A^\\top b$ - the least-squares solution. Vectors are orthogonal if $x^\\top y=0$. An **orthogonal matrix** satisfies $Q^\\top Q=I$ (rotations/reflections, preserves lengths, $Q^{-1}=Q^\\top$). Gram-Schmidt builds an orthonormal basis (QR decomposition).\n\n**Eigen and definiteness.** $Av=\\lambda v$. A symmetric matrix is **positive definite (PD)** if $x^\\top Ax>0\\ \\forall x\\ne0$ ⇔ all $\\lambda>0$ ⇔ Cholesky $A=LL^\\top$ exists; **PSD** if $\\ge0$. Covariance matrices and kernel (Gram) matrices are PSD; a PD Hessian means a strict local minimum. **Spectral theorem**: symmetric $A=Q\\Lambda Q^\\top$.\n\n**Matrix factorisations**: **LU** ($A=LU$, solving linear systems), **QR** (stable least squares), **Cholesky** (PD systems, sampling Gaussians, $O(n^3/3)$), **eigendecomposition**, **SVD** ($A=U\\Sigma V^\\top$, any matrix; pseudo-inverse $A^+=V\\Sigma^{+}U^\\top$), **NMF** ($V\\approx WH$, non-negative parts-based features), **matrix factorisation for recommenders** ($R\\approx UV^\\top$, minimise $\\|R-UV^\\top\\|^2_\\Omega+\\lambda(\\|U\\|^2+\\|V\\|^2)$ by ALS/SGD).\n\n**Solving $Ax=b$**: unique if $A$ invertible; least squares if overdetermined ($m>n$): $x=(A^\\top A)^{-1}A^\\top b$ or via QR/SVD; minimum-norm if underdetermined ($x=A^+b$). Condition number $\\kappa=\\sigma_{\\max}/\\sigma_{\\min}$ measures sensitivity to perturbations.",
+  "tradeoffs": [
+   "Direct methods (LU/QR/Cholesky) are exact but $O(n^3)$; iterative methods (conjugate gradient) scale to huge sparse systems.",
+   "Normal equations are cheap but square the condition number; QR/SVD are more stable but slower."
+  ],
+  "pitfalls": [
+   "Inverting a matrix to solve a system (use a solver).",
+   "Treating a near-singular matrix as invertible - check the condition number.",
+   "Mixing row/column-vector conventions between papers and code.",
+   "Assuming $AB=BA$."
+  ],
+  "interview": [
+   "Why is a covariance matrix positive semi-definite?",
+   "What does the rank of a weight matrix tell you about the layer?",
+   "Difference between eigen-decomposition and SVD?"
+  ],
+  "use": [
+   "Reading any ML derivation; checking whether a solve/inversion is safe; understanding why PCA, LoRA and kernels work."
+  ],
+  "avoid": [
+   "Do not compute explicit inverses in code; do not trust a determinant near zero as a singularity test (use rank/condition)."
+  ],
+  "qa": [
+   {
+    "q": "Why is $\\det(A)=0$ equivalent to not invertible?",
+    "a": "$\\det A$ is the volume scale of the map. If it is 0 the map flattens some direction to zero (nontrivial null space), so two different inputs map to the same output and no inverse can exist."
+   },
+   {
+    "q": "Show a covariance matrix is PSD.",
+    "a": "For any $a$: $a^\\top\\Sigma a=\\mathrm{Var}(a^\\top X)\\ge0$ because it is the variance of a scalar random variable."
+   }
+  ],
+  "compare": [
+   {
+    "title": "Factorisations",
+    "head": [
+     "Method",
+     "Requires",
+     "Cost",
+     "Use"
+    ],
+    "rows": [
+     [
+      "LU",
+      "square",
+      "O(n³)",
+      "general solves"
+     ],
+     [
+      "Cholesky",
+      "SPD",
+      "O(n³/3)",
+      "Gaussian sampling, GP"
+     ],
+     [
+      "QR",
+      "any",
+      "O(mn²)",
+      "stable least squares"
+     ],
+     [
+      "SVD",
+      "any",
+      "O(mn·min)",
+      "PCA, low-rank, pseudo-inverse"
+     ],
+     [
+      "NMF",
+      "non-negative data",
+      "iterative",
+      "parts-based features, topics"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "m-calc-full",
+  "phase": "math-ml",
+  "group": "1 · Foundations",
+  "title": "Calculus complete reference: limits, derivatives, Taylor series, integration, vector calculus",
+  "tagline": "From limits to Hessians: the calculus that optimisation, probability and backprop rest on.",
+  "viz": "gd-1d",
+  "explain": "**Functions, limits, continuity.** $\\lim_{x\\to a}f(x)=L$ means $f$ gets arbitrarily close to $L$. $f$ is continuous at $a$ if the limit equals $f(a)$. Neural nets with ReLU are continuous but not differentiable at 0 (subgradients are used).\n\n**Derivatives.** $f'(x)=\\lim_{h\\to0}\\frac{f(x+h)-f(x)}h$. Rules: sum, product $(fg)'=f'g+fg'$, quotient, **chain rule** $(f\\circ g)'=f'(g)g'$. Useful: $(e^x)'=e^x$, $(\\ln x)'=1/x$, $\\sigma'=\\sigma(1-\\sigma)$, $\\tanh'=1-\\tanh^2$.\n\n**Multivariable.** Partial derivative $\\partial f/\\partial x_i$; **gradient** $\\nabla f$ (direction of steepest ascent, orthogonal to level sets); **directional derivative** $D_uf=\\nabla f\\cdot u$ for unit $u$ (maximal when $u\\parallel\\nabla f$); **Jacobian** $J_{ij}=\\partial f_i/\\partial x_j$ for vector functions; **Hessian** $H_{ij}=\\partial^2f/\\partial x_i\\partial x_j$ (symmetric; curvature).\n\n**Maxima and minima.** Critical point: $\\nabla f=0$. Second-derivative test: $H\\succ0$ ⇒ local min; $H\\prec0$ ⇒ local max; indefinite ⇒ **saddle**. A function is **convex** if $H\\succeq0$ everywhere; then every local minimum is global. In deep nets saddles are far more common than bad local minima. Local vs global optimisation: gradient methods find local solutions; convexity, restarts or global methods (metaheuristics, Bayesian optimisation) are needed for global guarantees.\n\n**Taylor series.** $f(x+\\delta)\\approx f(x)+\\nabla f^\\top\\delta+\\tfrac12\\delta^\\top H\\delta+\\dots$ Gradient descent uses the first-order term; Newton's method minimises the second-order model: $\\delta=-H^{-1}\\nabla f$. The Taylor view also gives the learning-rate bound $\\eta<2/\\lambda_{\\max}(H)$ and linearisation ideas behind LIME and NTK.\n\n**Integration.** $\\int_a^bf(x)dx$ is area under the curve; fundamental theorem links it to derivatives. In ML: probabilities are integrals of densities ($P(a<X<b)=\\int_a^bp(x)dx$), expectations $\\mathbb E[g(X)]=\\int g\\,p$, marginals $p(x)=\\int p(x,z)dz$, evidence $p(D)=\\int p(D|\\theta)p(\\theta)d\\theta$ - usually intractable, hence Monte Carlo, variational inference. Techniques: substitution, integration by parts, change of variables (Jacobian determinant), Gaussian integral $\\int e^{-x^2/2}dx=\\sqrt{2\\pi}$. **Monte Carlo**: $\\mathbb E[g(X)]\\approx\\frac1N\\sum g(x_i)$ with error $\\propto1/\\sqrt N$.\n\n**Vector calculus.** Divergence $\\nabla\\cdot F$, curl $\\nabla\\times F$, Laplacian $\\nabla^2f=\\sum\\partial^2f/\\partial x_i^2$ (appears in PDEs, graph Laplacians, PINNs, Gaussian smoothing). Gradient of a quadratic $\\tfrac12x^\\top Ax-b^\\top x$ is $Ax-b$ (A symmetric) - solved by $x=A^{-1}b$.\n\n**Automatic differentiation vs numerical vs symbolic**: autodiff applies the chain rule exactly on the computation graph (reverse mode for many parameters, forward mode for few); numerical differences are approximate; symbolic can explode in size.",
+  "tradeoffs": [
+   "Second-order methods converge in fewer steps but need Hessians ($O(n^2)$ memory) - impractical for deep nets without approximations.",
+   "Monte Carlo is dimension-free but slow ($1/\\sqrt N$)."
+  ],
+  "pitfalls": [
+   "Confusing a critical point with a minimum (check the Hessian).",
+   "Forgetting the Jacobian determinant in a change of variables.",
+   "Using finite differences with the wrong step size."
+  ],
+  "interview": [
+   "Why does gradient descent follow the negative gradient?",
+   "What does the Hessian's eigenvalue spectrum say about the loss landscape?",
+   "Derive Newton's update from the Taylor expansion."
+  ],
+  "use": [
+   "Deriving losses and gradients; reasoning about curvature, convexity and step sizes; reading probabilistic derivations."
+  ],
+  "avoid": [
+   "Do not assume a loss is convex because it is smooth."
+  ],
+  "qa": [
+   {
+    "q": "Prove the gradient is the direction of steepest ascent.",
+    "a": "$D_uf=\\nabla f\\cdot u=\\|\\nabla f\\|\\cos\\theta$ for unit $u$; this is maximised when $\\theta=0$, i.e. $u=\\nabla f/\\|\\nabla f\\|$."
+   }
+  ]
+ },
+ {
+  "id": "m-prob-full",
+  "phase": "math-ml",
+  "group": "1 · Foundations",
+  "title": "Probability complete reference: distributions, CDF, covariance, correlation, LLN, CLT, MLE",
+  "tagline": "All the probability named in the syllabus, organised as one toolbox with formulas and when to use each distribution.",
+  "viz": null,
+  "explain": "**Basics.** Sample space, events, axioms (non-negativity, $P(\\Omega)=1$, additivity). $P(A\\cup B)=P(A)+P(B)-P(A\\cap B)$. **Conditional**: $P(A|B)=P(A\\cap B)/P(B)$; **chain rule** $P(A,B,C)=P(A)P(B|A)P(C|A,B)$; **total probability** $P(B)=\\sum_iP(B|A_i)P(A_i)$; **Bayes** $P(A|B)=P(B|A)P(A)/P(B)$. Independence $P(A,B)=P(A)P(B)$; conditional independence is the backbone of graphical models and Naive Bayes.\n\n**Random variables, PMF/PDF/CDF.** Discrete: PMF $p(x)=P(X=x)$. Continuous: density $f(x)\\ge0$, $\\int f=1$, $P(a<X<b)=\\int_a^bf$. **CDF** $F(x)=P(X\\le x)$, monotone, $f=F'$; the **quantile function** $F^{-1}$ gives percentiles and enables inverse-transform sampling.\n\n**Moments.** $\\mathbb E[X]$, $\\mathrm{Var}(X)=\\mathbb E[X^2]-\\mathbb E[X]^2$, skewness, kurtosis. Linearity: $\\mathbb E[aX+bY]=a\\mathbb EX+b\\mathbb EY$; $\\mathrm{Var}(aX)=a^2\\mathrm{Var}X$. **Covariance** $\\mathrm{Cov}(X,Y)=\\mathbb E[(X-\\mu_X)(Y-\\mu_Y)]$; **correlation** $\\rho=\\mathrm{Cov}/(\\sigma_X\\sigma_Y)\\in[-1,1]$ measures *linear* association only (zero correlation does not imply independence; independence implies zero correlation). $\\mathrm{Var}(X+Y)=\\mathrm{Var}X+\\mathrm{Var}Y+2\\mathrm{Cov}(X,Y)$.\n\n**Joint, marginal, conditional distributions.** $p(x)=\\sum_yp(x,y)$ (or $\\int$); $p(y|x)=p(x,y)/p(x)$. Multivariate Gaussian $\\mathcal N(\\mu,\\Sigma)$: marginals and conditionals are Gaussian; conditional $\\mu_{a|b}=\\mu_a+\\Sigma_{ab}\\Sigma_{bb}^{-1}(x_b-\\mu_b)$ (basis of Gaussian processes and Kalman filters).\n\n**Key distributions** (know pmf, mean, variance, use): **Bernoulli**($p$): coin; **Binomial**($n,p$): $np$, $np(1-p)$; **Poisson**($\\lambda$): counts/rare events, mean=var=$\\lambda$; **Geometric**; **Uniform**; **Exponential**($\\lambda$): waiting times, memoryless; **Gaussian**; **Beta**($\\alpha,\\beta$): a distribution over probabilities (conjugate prior of Bernoulli); **Gamma**; **Dirichlet** (prior over categorical); **Categorical/Multinomial**; **Student-t** (heavy tails, small samples); **Chi-square**; **Laplace**; **Log-normal** (multiplicative effects, latencies).\n\n**Law of large numbers**: $\\bar X_n\\to\\mu$. **Central limit theorem**: $\\sqrt n(\\bar X_n-\\mu)/\\sigma\\to\\mathcal N(0,1)$ for i.i.d. finite-variance data - the justification for confidence intervals and z/t-tests. Concentration: Markov, Chebyshev, Hoeffding.\n\n**Estimation.** **MLE**: $\\hat\\theta=\\arg\\max\\sum\\log p(x_i|\\theta)$ (Gaussian: sample mean and (biased) variance; Bernoulli: $k/n$). Properties: consistent, asymptotically normal, efficient. **MAP** adds a prior; **Bayesian** keeps the full posterior. **Method of moments** matches sample and theoretical moments. Bias of an estimator $=\\mathbb E\\hat\\theta-\\theta$; unbiased variance uses $n-1$.\n\n**Sampling**: inverse CDF, rejection sampling, importance sampling, MCMC (Metropolis-Hastings, Gibbs).",
+  "tradeoffs": [
+   "Parametric distributions are compact but wrong if misspecified; non-parametric (KDE, empirical) are flexible but data-hungry.",
+   "Conjugate priors give closed-form posteriors at the cost of modelling freedom."
+  ],
+  "pitfalls": [
+   "Reading correlation as causation or as full dependence.",
+   "Using a Gaussian for heavy-tailed data (income, latency).",
+   "Mixing up PDF values (can exceed 1) with probabilities.",
+   "Treating samples as independent when they are autocorrelated."
+  ],
+  "interview": [
+   "Zero correlation vs independence - give a counterexample.",
+   "Why does the CLT justify a confidence interval?",
+   "When would you choose Poisson vs Binomial?"
+  ],
+  "use": [
+   "Choosing noise models and priors; understanding every likelihood-based loss; analysing results statistically."
+  ],
+  "avoid": [
+   "Do not call data 'normal' without a Q-Q plot or test; do not compute correlations on non-monotone relations without plotting."
+  ],
+  "qa": [
+   {
+    "q": "Counterexample: uncorrelated but dependent.",
+    "a": "$X\\sim\\mathcal N(0,1)$, $Y=X^2$: $\\mathrm{Cov}(X,Y)=\\mathbb E[X^3]-0=0$, yet $Y$ is a deterministic function of $X$."
+   }
+  ]
+ },
+ {
+  "id": "m-stats-full",
+  "phase": "math-ml",
+  "group": "1 · Foundations",
+  "title": "Statistics complete reference: descriptive, inferential, hypothesis tests, correlation, Bayesian statistics, bootstrap, power",
+  "tagline": "From describing data to testing claims - the statistics every empirical paper uses.",
+  "viz": "permboot-lab",
+  "explain": "**Descriptive statistics.** Location: mean, median, mode, trimmed mean. Spread: variance, standard deviation, IQR, range, MAD. Shape: skewness, kurtosis. Visualisation: histogram, box plot, violin, Q-Q plot, scatter matrix. Prefer the median/IQR for skewed or outlier-ridden data.\n\n**Populations, samples, sampling.** Statistics describe the sample; **inference** generalises to the population. Sampling designs: simple random, stratified (preserve class proportions), cluster, systematic, convenience (biased). The **standard error** of the mean is $s/\\sqrt n$.\n\n**Confidence intervals.** For a mean: $\\bar x\\pm t_{n-1,1-\\alpha/2}\\,s/\\sqrt n$. Meaning: 95% of intervals built this way cover the true value (it is *not* a 95% probability for this single interval).\n\n**Hypothesis testing framework.** State $H_0$ (no effect) and $H_1$; choose significance level $\\alpha$ (usually 0.05); compute a test statistic; the **p-value** is $P(\\text{data at least this extreme}\\mid H_0)$. Reject $H_0$ if $p<\\alpha$. **Type I** error = false positive (rate $\\alpha$), **Type II** = false negative (rate $\\beta$), **power** $=1-\\beta$. Statistical significance ≠ practical significance: report **effect size** and CI.\n\n**Common tests**: **z-test** (known $\\sigma$ or large $n$); **one-sample t**; **two-sample (Welch) t** $t=\\frac{\\bar x_1-\\bar x_2}{\\sqrt{s_1^2/n_1+s_2^2/n_2}}$; **paired t** (same units measured twice - differences); **chi-square** test of independence for categorical tables $\\chi^2=\\sum\\frac{(O-E)^2}{E}$ and goodness-of-fit; **ANOVA** compares 3+ group means via $F=\\frac{\\text{between-group variance}}{\\text{within-group variance}}$ (then post-hoc Tukey); **F-test** for variances.\n\n**Correlation.** **Pearson** $r$ (linear, assumes roughly normal, sensitive to outliers); **Spearman** $\\rho$ (rank-based, monotonic); **Kendall** $\\tau$. Test $H_0:\\rho=0$; correlation ≠ causation.\n\n**Regression** as inference: linear regression coefficients have standard errors and t-tests; logistic regression reports odds ratios $e^{\\beta}$; check residual plots, multicollinearity (VIF), heteroscedasticity.\n\n**Bayesian statistics.** $p(\\theta|D)\\propto p(D|\\theta)p(\\theta)$. Conjugate example: Beta($a,b$) prior + $k$ successes in $n$ ⇒ Beta($a+k,b+n-k$). Report **credible intervals** (95% probability the parameter lies in the interval *given* data and prior), posterior predictive, Bayes factors. Advantages: uncertainty, priors, small data; costs: prior choice, computation (MCMC, variational).\n\n**Bootstrap.** Resample the data with replacement $B$ times, recompute the statistic, use the percentiles for a CI or the spread for a standard error - works for medians, AUC, differences in F1, anything. **Permutation tests** shuffle labels to build the null (use the lab above).\n\n**Power analysis.** Given effect size $d$, $\\alpha$, desired power (0.8): per-group $n\\approx2\\left(\\frac{z_{1-\\alpha/2}+z_{1-\\beta}}{d}\\right)^2$ (two-sample, $d=\\Delta/\\sigma$). Do it *before* running experiments.",
+  "tradeoffs": [
+   "Parametric tests are more powerful when assumptions hold; non-parametric/permutation tests are safer when they don't.",
+   "Frequentist p-values are standard in journals; Bayesian reporting is more informative but less conventional."
+  ],
+  "pitfalls": [
+   "p-hacking and multiple comparisons without correction.",
+   "Interpreting 'not significant' as 'no effect'.",
+   "Using unpaired tests for paired data.",
+   "Applying t-tests to heavy-tailed or tiny samples without checking assumptions."
+  ],
+  "interview": [
+   "Explain a p-value to a non-statistician.",
+   "When ANOVA vs repeated t-tests?",
+   "What is statistical power and how do you compute sample size?"
+  ],
+  "use": [
+   "Validating model comparisons and any claim in a paper; planning sample sizes."
+  ],
+  "avoid": [
+   "Do not report p-values without effect sizes and confidence intervals."
+  ],
+  "qa": [
+   {
+    "q": "Why not run many t-tests instead of ANOVA?",
+    "a": "Each test has a 5% false-positive chance; for k groups there are k(k−1)/2 comparisons, so the family-wise error rate inflates (≈ 1−0.95^m). ANOVA tests all means at once; follow up with corrected post-hoc tests."
+   }
+  ]
+ },
+ {
+  "id": "m-optim-full",
+  "phase": "math-ml",
+  "group": "1 · Foundations",
+  "title": "Optimisation theory: convexity, Newton, quasi-Newton, L-BFGS, Lagrange multipliers, constrained optimisation",
+  "tagline": "The classical optimisation toolbox behind SVMs, regression, and every training algorithm.",
+  "viz": "optimizer-lab",
+  "explain": "**Problem.** $\\min_xf(x)$ s.t. $g_i(x)\\le0$, $h_j(x)=0$. **Convex set**: segment between any two points stays inside. **Convex function**: $f(\\lambda x+(1-\\lambda)y)\\le\\lambda f(x)+(1-\\lambda)f(y)$ ⇔ Hessian PSD. For convex problems every local minimum is global and gradient descent converges ($O(1/t)$, linearly if strongly convex). Convex in ML: linear/ridge/lasso regression, logistic regression, SVM; non-convex: neural nets, k-means, matrix factorisation, mixtures.\n\n**First-order methods.** **Gradient descent** $x\\leftarrow x-\\eta\\nabla f$; **SGD** with minibatches; **mini-batch** trades noise vs speed; **momentum** $v\\leftarrow\\beta v+\\nabla f$; **Nesterov** evaluates the gradient at the look-ahead point $x-\\eta\\beta v$ (optimal $O(1/t^2)$ for smooth convex). **Adaptive**: AdaGrad (per-parameter accumulation, good for sparse features), RMSProp, Adam/AdamW (see the optimizer lab).\n\n**Newton's method.** Minimise the second-order Taylor model: $x\\leftarrow x-H^{-1}\\nabla f$. Quadratic convergence near a minimum but costs $O(n^3)$ and needs $H\\succ0$ (use damping/line search/trust region). On a quadratic it converges in one step regardless of conditioning.\n\n**Quasi-Newton (BFGS) and L-BFGS.** Approximate $H^{-1}$ from successive gradient differences $s_k=x_{k+1}-x_k$, $y_k=\\nabla f_{k+1}-\\nabla f_k$ with the secant condition $B_{k+1}s_k=y_k$. BFGS stores a dense matrix ($O(n^2)$); **L-BFGS** stores the last $m$ (5-20) pairs and computes the direction by a two-loop recursion in $O(mn)$ - the default for logistic regression, CRFs, style transfer and small-to-medium smooth problems (scikit-learn, SciPy). Needs a good **line search** (Wolfe conditions). Also **conjugate gradient** for large linear systems.\n\n**Constrained optimisation.** **Lagrangian** $\\mathcal L(x,\\lambda,\\nu)=f(x)+\\sum\\lambda_ig_i(x)+\\sum\\nu_jh_j(x)$. **KKT conditions** (necessary, and sufficient for convex): stationarity $\\nabla_x\\mathcal L=0$, primal feasibility, dual feasibility $\\lambda_i\\ge0$, **complementary slackness** $\\lambda_ig_i(x)=0$. Equality-constrained example: maximise entropy subject to $\\sum p=1$ gives the uniform distribution. **Duality**: the dual $\\max_{\\lambda\\ge0}\\min_x\\mathcal L$ lower-bounds the primal (weak duality); equal for convex problems under Slater's condition. The **SVM** is solved through its dual, which exposes support vectors (non-zero $\\lambda_i$) and the kernel trick.\n\n**Other solvers**: projected gradient, penalty/barrier and interior-point methods, ADMM, coordinate descent (lasso), proximal gradient (L1), simplex (linear programming), trust-region methods.\n\n**Regularisation as optimisation**: L2/L1 penalties are Lagrangian forms of norm constraints ($\\|w\\|\\le c$); weight decay; early stopping; **learning-rate scheduling** (step, cosine, warm-up, cyclical).\n\n**Choosing**: small smooth problem → L-BFGS; huge data/deep nets → AdamW/SGD+momentum; sparse features → AdaGrad; L1 penalty → coordinate descent/proximal methods; constraints → KKT/QP solvers.",
+  "tradeoffs": [
+   "Second-order accuracy vs per-step cost; L-BFGS is the practical compromise.",
+   "Full-batch methods are deterministic; stochastic ones are noisy but scale and generalise well."
+  ],
+  "pitfalls": [
+   "Newton without ensuring $H$ is PD (steps may go uphill).",
+   "L-BFGS on noisy stochastic gradients (breaks the secant assumption).",
+   "Ignoring feature scaling, which dominates convergence speed."
+  ],
+  "interview": [
+   "Why is Newton's method rarely used for deep nets?",
+   "Explain KKT complementary slackness in an SVM.",
+   "How does L-BFGS avoid storing the Hessian?"
+  ],
+  "use": [
+   "Choosing the right solver; deriving SVM/regularised objectives; justifying optimisation choices in a paper."
+  ],
+  "avoid": [
+   "Do not use batch second-order methods on million-parameter stochastic problems."
+  ],
+  "qa": [
+   {
+    "q": "Why does Newton solve a quadratic in one step?",
+    "a": "For $f=\\tfrac12x^\\top Ax-b^\\top x$, $\\nabla f=Ax-b$ and $H=A$, so $x-H^{-1}\\nabla f=x-A^{-1}(Ax-b)=A^{-1}b$, the exact minimiser."
+   }
+  ]
+ }
+]

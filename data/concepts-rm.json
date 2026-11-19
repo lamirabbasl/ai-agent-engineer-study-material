@@ -1,0 +1,321 @@
+[
+ {
+  "id": "rm-method",
+  "phase": "research-methods",
+  "group": "1 · Research foundations",
+  "title": "Scientific research methodology: problem, questions, hypotheses, frameworks, quantitative vs qualitative, ethics",
+  "tagline": "The skeleton every paper hangs on, from vague interest to a defensible research design.",
+  "viz": null,
+  "explain": "**The research cycle.** Observe a problem → survey literature → identify a **gap** → state **research questions (RQ)**, **objectives** and **hypotheses** → choose a **methodology** → collect/prepare data → experiment → analyse → conclude → communicate → (new questions).\n\n**Definitions you must be able to give**\n- **Research problem**: a specific, significant, unresolved issue (not a topic): \"Deep forecasters trained on short hydrological series overfit; how can physics-informed regularisation improve 7-day flow forecasts?\"\n- **Research questions**: answerable, specific, measurable. **Objectives**: action statements (\"design, evaluate, compare…\"). **Hypotheses**: testable predictions, with a null $H_0$ and alternative $H_1$ (e.g. $H_0$: the proposed model has the same RMSE as the baseline).\n- **Conceptual framework**: your map of variables and relationships (inputs → mechanism → outputs, moderators). **Theoretical framework**: the established theory/model that grounds it (e.g. statistical learning theory, a physical law).\n- **Quantitative** research: numerical data, statistical inference, experiments/surveys/simulations (almost all ML papers). **Qualitative**: interviews, case studies, thematic analysis (user studies, ethics/requirements work). **Mixed methods** combine them.\n- **Research design types**: experimental, quasi-experimental, observational, simulation/computational, case study, benchmark/comparative, design-science (build and evaluate an artefact).\n\n**Internal vs external validity**: does the effect really come from your method (controls, ablations) and does it generalise (other datasets, populations, time)? **Construct validity**: does your metric measure the real objective? **Statistical conclusion validity**: correct tests, enough power.\n\n**Reproducible research**: fixed seeds, versions, data/code availability or clear access conditions, documented preprocessing and hyper-parameters, FAIR data, model cards and datasheets, reporting checklists (NeurIPS reproducibility checklist, TRIPOD/CONSORT-AI for medical). **Research ethics**: informed consent and IRB approval for human data, privacy/de-identification, bias and fairness, dual use, honest reporting (no p-hacking, no cherry-picked seeds), authorship credit, conflicts of interest, plagiarism and self-plagiarism, data licences, environmental cost.\n\n**Limitations**: state them yourself - scope of data, assumptions, compute, generalisation, failure cases. Reviewers trust honest limitations.",
+  "tradeoffs": [
+   "A narrow, well-posed question yields a rigorous paper; a broad one yields vague claims.",
+   "Rigour (controls, multiple datasets) costs time but is what separates strong from weak journals."
+  ],
+  "pitfalls": [
+   "Topic instead of problem.",
+   "Hypotheses that cannot be falsified.",
+   "Claiming causal conclusions from correlational experiments."
+  ],
+  "interview": [
+   "Difference between research question and hypothesis?",
+   "Internal vs external validity?",
+   "What makes research reproducible?"
+  ],
+  "use": [
+   "Write RQs and hypotheses before coding experiments."
+  ],
+  "avoid": [
+   "Don't start modelling before the question and metric are fixed."
+  ],
+  "qa": [
+   {
+    "q": "Example of a testable hypothesis in an ML paper?",
+    "a": "$H_1$: the proposed hybrid model achieves lower RMSE than the best baseline across the benchmark datasets ($p<0.05$ by Wilcoxon signed-rank, Holm-corrected), against $H_0$: no difference."
+   }
+  ]
+ },
+ {
+  "id": "rm-slr-gap",
+  "phase": "research-methods",
+  "group": "1 · Research foundations",
+  "title": "Literature review, systematic reviews (SLR/PRISMA) and finding a research gap",
+  "tagline": "A repeatable procedure from search string to a justified contribution.",
+  "viz": null,
+  "explain": "**Narrative vs systematic review.** A narrative review is selective and expert-driven; a **Systematic Literature Review (SLR)** follows a pre-registered, reproducible protocol (Kitchenham for software engineering; Cochrane in medicine), reducing bias.\n\n**SLR / PRISMA workflow**\n1. **Research questions** (PICO-style: population, intervention, comparison, outcome).\n2. **Protocol**: databases, search strings, inclusion/exclusion criteria (years, language, peer-reviewed, task, dataset availability), quality-assessment checklist, data-extraction form.\n3. **Search** in multiple databases (see below) with Boolean strings: (\"deep learning\" OR \"neural network\") AND (\"flood\" OR \"streamflow\") AND (forecast* OR predict*); snowballing (backward/forward citation).\n4. **Screening**: dedupe → title/abstract → full text; two reviewers + agreement (Cohen's κ).\n5. **Quality assessment** and **data extraction** (task, data, model, metrics, results, limitations).\n6. **Synthesis**: tables, taxonomy, bibliometric maps (VOSviewer), trend charts; narrative or meta-analysis.\n7. **Report with a PRISMA 2020 flow diagram**: records identified → screened → eligible → included, with reasons for exclusion; follow the PRISMA checklist; consider registering (PROSPERO/OSF).\n\n**Databases/platforms**: **Web of Science** (ISI/Clarivate - JCR impact factor, quartiles), **Scopus** (Elsevier, CiteScore), **Google Scholar** (broad, noisy, citation counts), **IEEE Xplore**, **ScienceDirect**, **SpringerLink**, **PubMed** (biomedicine), **arXiv** (preprints; check for peer-reviewed versions), plus ACM DL, Semantic Scholar, Papers with Code, Connected Papers/ResearchRabbit for citation graphs. Manage references with Zotero/Mendeley.\n\n**Finding a research gap - a method**\n1. Read 30-60 recent papers (last 3-5 years) in a tight niche; read surveys first.\n2. Fill a comparison matrix: problem, data, method, metrics, baselines, results, stated limitations, future work.\n3. Look for gaps of type: **unaddressed problem/population/data**, **methodological** (nobody combined X with Y; assumptions violated), **evaluation** (weak baselines, no statistical tests, leakage, no external validation), **scale/efficiency**, **interpretability/uncertainty**, **reproducibility** (no code), **contradictory findings**, **new tools applied to old problems** (only if justified).\n4. Validate: search titles with your idea's keywords; talk to supervisors; check that the gap *matters* (who benefits) and is *feasible* with your data/compute.\n5. Write the gap sentence: \"Existing studies do A, but they B; therefore C remains unsolved. We propose D and show E.\"\n6. State **contributions** as 3-4 concrete bullets (new method, new dataset/benchmark, empirical/analytical insight, open-source tool).\n\n**Positioning**: novelty may be incremental if the evidence is strong; \"applying model M to dataset D\" is rarely enough - add analysis, comparison, a methodological twist or a thorough study of when and why it works.",
+  "tradeoffs": [
+   "A full SLR is rigorous but takes months; a focused scoping review is faster.",
+   "Chasing the newest trend risks a crowded space; a neglected niche risks low interest."
+  ],
+  "pitfalls": [
+   "Single-database searches.",
+   "Citing only successes.",
+   "Declaring a 'gap' that exists because the problem is uninteresting or already solved in another field's vocabulary."
+  ],
+  "interview": [
+   "Walk through a PRISMA flow.",
+   "How do you identify a research gap?",
+   "Which databases and why?"
+  ],
+  "use": [
+   "First 2-3 months of any paper project; reuse the comparison matrix for the related-work section."
+  ],
+  "avoid": [
+   "Don't copy a competitor's pipeline and call a hyper-parameter change a contribution."
+  ],
+  "qa": [
+   {
+    "q": "Why use at least two reviewers in an SLR?",
+    "a": "To reduce selection and extraction bias; their agreement (Cohen's κ) is reported, and disagreements are resolved by discussion or a third reviewer."
+   }
+  ]
+ },
+ {
+  "id": "rm-experiment-design",
+  "phase": "research-methods",
+  "group": "2 · Experimental design and statistics",
+  "title": "Experimental design for ML papers: datasets, baselines, ablations, sensitivity, robustness, complexity, reproducibility",
+  "tagline": "A checklist of every experiment reviewers expect, and why each exists.",
+  "viz": null,
+  "explain": "**1. Datasets.** Justify choice (public benchmarks for comparability + at least one realistic dataset); describe collection, size, features, class balance, licences, ethics approval; provide statistics tables and sample figures; **external validation** on data from a different source/time/site; avoid benchmarks with known leakage or label noise.\n\n**2. Preprocessing & splits.** Describe every step (cleaning, imputation, scaling, encoding, augmentation); fit transformers on training folds only; use the split that matches deployment (time/group); fix and publish splits and seeds.\n\n**3. Baselines.** Include (a) trivial (majority, seasonal naive), (b) classical strong (logistic, random forest, XGBoost, ARIMA), (c) recent **state-of-the-art** from the last 2-3 years with official code, (d) the ablated versions of your own model. Give baselines the *same* tuning budget and data access.\n\n**4. Proposed model & training.** Architecture diagram, equations, pseudo-code, all hyper-parameters (table), optimiser, schedule, early stopping rule, hardware; tune hyper-parameters on validation data only (Optuna/Bayesian search), report search ranges.\n\n**5. Validation protocol.** K-fold/repeated CV or fixed splits with **multiple random seeds** (≥5-10); report mean ± std and confidence intervals; nested CV if tuning inside; final hold-out test used once.\n\n**6. Metrics.** Primary metric matched to the task (+ secondary), per-class/per-horizon results, confusion matrices, ROC/PR curves, calibration, error analysis on failure cases.\n\n**7. Statistical significance.** Test differences with the appropriate test (next concept) and correct for multiple comparisons; report effect sizes.\n\n**8. Ablation study.** Remove/replace each proposed component (one at a time) and report the drop - proves each part matters. Also feature-group ablations, loss ablations, architecture variants.\n\n**9. Sensitivity analysis.** Vary key hyper-parameters (learning rate, depth, window length, λ) and show performance curves/heat-maps - the model is not a knife-edge.\n\n**10. Robustness analysis.** Gaussian noise, missing data (random/block), outliers, distribution shift, adversarial perturbations, label noise, fewer training samples (learning curves), different seeds.\n\n**11. Generalisation testing.** Cross-dataset (train A / test B), cross-site, temporal hold-out, unseen subjects/classes.\n\n**12. Complexity & efficiency.** Parameters, FLOPs/MACs, training time, **inference latency** (batch 1 and batched; hardware stated), peak memory, energy/CO₂ where relevant; big-O of the algorithm.\n\n**13. Interpretability & uncertainty.** Feature importance/SHAP, attention or saliency (with sanity checks), prediction intervals/calibration.\n\n**14. Reproducibility.** Seed control (`random`, NumPy, PyTorch + deterministic flags), environment file, config files, code/data/model release (GitHub + Zenodo DOI), README to reproduce each table and figure, hardware and library versions, reporting every run (not just the best).\n\n**Layout of a results section**: main comparison table (best in bold, second underlined, ± std, significance markers) → ablation → sensitivity → robustness → efficiency → qualitative analysis → limitations.",
+  "tradeoffs": [
+   "Comprehensive experiments strengthen claims but multiply compute; prioritise ablation, significance and external validation.",
+   "More baselines increase credibility only if tuned fairly."
+  ],
+  "pitfalls": [
+   "Reporting the best seed.",
+   "Un-tuned baselines.",
+   "Test-set tuning.",
+   "No ablation to show where gains come from."
+  ],
+  "interview": [
+   "What must an ablation show?",
+   "How do you make comparisons fair?",
+   "How many seeds and why?"
+  ],
+  "use": [
+   "Use as the pre-submission checklist for every ML paper."
+  ],
+  "avoid": [
+   "Do not rely on a single dataset or a single split."
+  ],
+  "qa": [
+   {
+    "q": "Why is external validation more convincing than cross-validation?",
+    "a": "Cross-validation resamples the same distribution; external data from another source/time/site tests transportability and exposes dataset-specific shortcuts and leakage."
+   }
+  ]
+ },
+ {
+  "id": "rm-stats-tests",
+  "phase": "research-methods",
+  "group": "2 · Experimental design and statistics",
+  "title": "Statistical tests for papers: normality, t-tests, Wilcoxon, Mann-Whitney, ANOVA, Kruskal-Wallis, Friedman-Nemenyi, McNemar, corrections, effect sizes, bootstrap",
+  "tagline": "Which test for which comparison, assumptions, formulas, and how to report.",
+  "viz": "significance-lab",
+  "explain": "**Decision map**\n- 2 groups, **independent**, continuous, normal → **Welch's t-test**; non-normal/ordinal → **Mann-Whitney U**.\n- 2 groups, **paired** (same folds/datasets) → **paired t-test** on differences; non-normal → **Wilcoxon signed-rank**.\n- 3+ groups, independent → **one-way ANOVA** (+ Tukey/Games-Howell); non-parametric → **Kruskal-Wallis** (+ Dunn).\n- 3+ models on **multiple datasets/folds** (repeated measures) → **Friedman test** + **Nemenyi** post-hoc (critical-difference diagram), or Wilcoxon with Holm/Bonferroni; many vs a control → Bonferroni-Dunn.\n- 2 **classifiers on the same test set** (paired binary outcomes) → **McNemar's test**.\n- Categorical association → **chi-square / Fisher exact**.\n\n**Normality & assumptions**: **Shapiro-Wilk** (best for $n<2000$; $H_0$: normal), **Kolmogorov-Smirnov** (one-/two-sample; Lilliefors correction when parameters are estimated), Anderson-Darling, Q-Q plots (always look). **Levene/Bartlett** for equal variances. With small samples tests have low power; with huge samples they flag trivial deviations - judge visually too.\n\n**Formulas**\n- Welch $t=\\frac{\\bar x_1-\\bar x_2}{\\sqrt{s_1^2/n_1+s_2^2/n_2}}$ (Welch-Satterthwaite df). Paired: $t=\\bar d/(s_d/\\sqrt n)$.\n- **Wilcoxon**: rank $|d_i|$, sum ranks of positive differences $W^+$; normal approximation for $n>20$. **Mann-Whitney**: $U=n_1n_2+\\frac{n_1(n_1+1)}2-R_1$.\n- **ANOVA**: $F=\\frac{MS_{between}}{MS_{within}}$ with $(k-1,N-k)$ df. **Kruskal-Wallis** uses rank sums: $H=\\frac{12}{N(N+1)}\\sum\\frac{R_j^2}{n_j}-3(N+1)$.\n- **Friedman** for $k$ models on $N$ datasets with average ranks $R_j$: $\\chi_F^2=\\frac{12N}{k(k+1)}\\left[\\sum R_j^2-\\frac{k(k+1)^2}4\\right]$; **Nemenyi** critical difference $CD=q_\\alpha\\sqrt{\\frac{k(k+1)}{6N}}$ - two models differ if their average ranks differ by more than $CD$.\n- **McNemar** (b = A right/B wrong, c = A wrong/B right): $\\chi^2=\\frac{(|b-c|-1)^2}{b+c}$, 1 df.\n\n**Multiple comparisons.** Testing $m$ hypotheses at $\\alpha=0.05$ inflates false positives. **Bonferroni**: use $\\alpha/m$ (conservative). **Holm**: step-down - sort p-values, compare $p_{(i)}$ with $\\alpha/(m-i+1)$ - uniformly more powerful, still controls family-wise error. **Benjamini-Hochberg** controls false discovery rate (many tests).\n\n**Effect size and CI.** A tiny $p$ with a negligible difference is meaningless. **Cohen's d** $=\\frac{\\bar x_1-\\bar x_2}{s_p}$ (0.2 small, 0.5 medium, 0.8 large), Hedges' g (small-sample), paired $d_z$, **Cliff's delta / rank-biserial** for non-parametric, $\\eta^2$ for ANOVA, Cohen's κ. Always give **95% confidence intervals** for differences.\n\n**Bootstrap & permutation tests.** Resample paired differences with replacement to get a CI for the mean/median difference; permute labels (or swap model outputs per example) to get the null distribution - assumption-light, works for any metric (F1, AUC), see the lab above.\n\n**Caveats for ML**: CV folds are **not independent** (overlapping training sets) so plain paired t-tests on fold scores are over-confident - use **corrected resampled t-test** (Nadeau-Bengio), **5×2cv F test** (Dietterich/Alpaydin), or test over datasets (Demšar). Repeated runs with seeds measure training variance, not generalisation.\n\n**Reporting template**: \"Wilcoxon signed-rank over 10 datasets: W = 3, p = 0.014 (Holm-adjusted p = 0.042), rank-biserial r = 0.78; mean ΔRMSE = −0.031 (95% bootstrap CI [−0.052, −0.011]).\"",
+  "tradeoffs": [
+   "Parametric tests are powerful when assumptions hold; non-parametric are safer with small, non-normal samples.",
+   "Strict corrections reduce false positives and power."
+  ],
+  "pitfalls": [
+   "Paired t-test on CV folds without correction.",
+   "Reporting p-values without effect sizes.",
+   "Choosing the test after seeing the data (p-hacking).",
+   "Treating non-significance as equivalence."
+  ],
+  "interview": [
+   "Friedman + Nemenyi: when and why?",
+   "McNemar vs paired t-test?",
+   "Bonferroni vs Holm?"
+  ],
+  "use": [
+   "Every comparison table in a paper should carry a test, correction and effect size."
+  ],
+  "avoid": [
+   "Do not run dozens of tests and report only the significant ones."
+  ],
+  "qa": [
+   {
+    "q": "Why can't you run an ordinary paired t-test on 10-fold CV scores of two models?",
+    "a": "Training sets overlap heavily across folds, so scores are positively correlated; the independence assumption fails and the variance is underestimated, inflating the t-statistic. Use the Nadeau-Bengio corrected resampled t-test, 5×2cv, or compare across independent datasets."
+   }
+  ]
+ },
+ {
+  "id": "rm-model-comparison",
+  "phase": "research-methods",
+  "group": "2 · Experimental design and statistics",
+  "title": "Advanced model comparison and validation: SOTA comparison, cross-dataset, missing data, noise, stability, efficiency",
+  "tagline": "How to compare models credibly and make the evidence section of a paper bullet-proof.",
+  "viz": null,
+  "explain": "**Comparison hierarchy** (build a table in this order): trivial baselines → classical ML → previous best (SOTA) methods → proposed model → ablated variants. Use the *same* data, splits, preprocessing, metrics, tuning budget and hardware. Re-run baselines with official code where possible; if you copy numbers from papers, say so and note protocol differences.\n\n**Validation dimensions**\n1. **Baseline & SOTA comparison**: cite exact versions; show where you win, tie and lose (honest per-dataset breakdown).\n2. **Ablation**: component-wise (see experimental design).\n3. **Feature-importance analysis**: permutation/SHAP; check agreement with domain knowledge.\n4. **Hyper-parameter sensitivity**: performance surfaces; one-at-a-time and two-way grids.\n5. **Robustness to noise**: add Gaussian/impulse noise at SNR levels; report degradation curves.\n6. **Performance under missing data**: random/MCAR and structured missingness at 5-50%; compare imputation vs native handling.\n7. **Cross-dataset validation**: train on A, test on B (and reverse) - the strongest evidence of generalisation.\n8. **Cross-validation stability**: variation of metrics across folds/seeds (std, boxplots); unstable models are suspicious.\n9. **Computational efficiency**: params, FLOPs, memory, train/inference time; accuracy-vs-cost Pareto plot.\n10. **Statistical significance** (previous concept).\n11. **Interpretability**: explanation quality and sanity checks.\n12. **Uncertainty estimation**: calibration (ECE), coverage of intervals/conformal sets, abstention curves.\n\n**Presentation**: bold best, underline second; ± std; significance markers (†); critical-difference diagram for ranks across datasets; radar plots only with caution; Pareto plots (accuracy vs latency); per-slice tables (subgroups, classes); error-analysis gallery of failures; confidence-interval bar plots rather than bare bars.\n\n**Common reviewer objections and the answer**: \"Baselines are weak\" → tuned baselines + recent SOTA. \"Gains are within noise\" → seeds, CIs, tests. \"Possible leakage\" → split description, group/time CV, external dataset. \"Not generalisable\" → cross-dataset. \"Too complex for the gain\" → efficiency + ablation. \"Not interpretable\" → XAI section.",
+  "tradeoffs": [
+   "Exhaustive validation is costly; prioritise cross-dataset, ablation and significance.",
+   "Reporting losses on some datasets reduces perceived novelty but increases trust."
+  ],
+  "pitfalls": [
+   "Copying baseline numbers computed under different protocols.",
+   "Hiding datasets where the method fails.",
+   "Reporting only the metric your model wins."
+  ],
+  "interview": [
+   "How do you demonstrate that gains are not due to tuning?",
+   "What does cross-dataset validation show?",
+   "How do you present efficiency trade-offs?"
+  ],
+  "use": [
+   "Plan the validation section before experiments start."
+  ],
+  "avoid": [
+   "Do not tweak the test protocol after seeing results."
+  ],
+  "qa": [
+   {
+    "q": "What's the strongest single piece of evidence for generalisation?",
+    "a": "Performance on an independent external dataset (different source, time or population) with the model and thresholds frozen beforehand."
+   }
+  ]
+ },
+ {
+  "id": "rm-paper-writing",
+  "phase": "research-methods",
+  "group": "3 · Writing and publishing",
+  "title": "Scientific paper writing: structure, title, abstract, equations, figures, tables, LaTeX, academic English",
+  "tagline": "IMRaD structure, what each section must contain, and the details that signal professionalism.",
+  "viz": null,
+  "explain": "**Structure (IMRaD+)**\n1. **Title**: specific, informative, 10-15 words, includes task + method + domain; avoid hype (\"novel\", \"efficient\" without evidence).\n2. **Abstract** (150-250 words): context → gap → method → key results with numbers → implication. Self-contained, no citations or undefined abbreviations.\n3. **Keywords**: 4-6 terms searchable in databases.\n4. **Introduction**: importance → what is known → **gap** → your solution → **contributions** (bullets) → paper outline. Funnel from broad to specific.\n5. **Related work / literature review**: organised by themes/taxonomy (not paper-by-paper); end each theme with the limitation your work addresses; include recent (3-5 years) and seminal works.\n6. **Methodology / proposed model**: problem definition and notation (table of symbols), **mathematical formulation**, architecture figure, algorithm box (pseudo-code), loss functions, complexity, assumptions - enough to reproduce.\n7. **Experimental setup**: datasets, preprocessing, baselines, metrics, implementation details, hyper-parameters, hardware.\n8. **Results**: tables/figures with statistical tests; ablation, sensitivity, robustness, efficiency; each paragraph answers one RQ.\n9. **Discussion**: interpret *why*; compare with literature; error analysis; implications; **limitations**.\n10. **Conclusion**: restate findings with evidence, contributions, **future work** (concrete, not generic).\n11. **Declarations**: data & code availability, funding, conflicts of interest, author contributions (CRediT), acknowledgements, ethics statement.\n12. **References**: consistent style (IEEE numeric, APA, Vancouver), DOIs, only works you've read, no excessive self-citation.\n\n**Equations**: define every symbol on first use, number only equations referred to, consistent notation (bold vectors, capital matrices), punctuate equations as part of sentences. **Figures**: vector graphics (PDF/SVG), readable at column width, labelled axes with units, colour-blind-safe palettes, informative captions that stand alone, same fonts as text. **Tables**: booktabs style, consistent decimals, best in bold, units, ± std, footnotes for significance.\n\n**LaTeX workflow**: Overleaf for collaboration; use the journal template (IEEEtran, elsarticle, Springer `sn-jnl`), BibTeX/BibLaTeX with Zotero/Mendeley exports, `\\label/\\ref`, `siunitx`, `algorithm2e`, `tikz`/matplotlib figures, version control with Git.\n\n**Academic English**: short, active, precise sentences; one idea per paragraph (topic sentence first); hedge appropriately (\"suggests\", \"indicates\"); avoid \"very\", \"obviously\", unexplained abbreviations; past tense for what you did, present tense for established facts and what the paper shows; use Grammarly/LanguageTool but verify; ask a native or experienced reader to proofread.\n\n**Writing process**: outline from contributions backwards; write methods and results first, then intro and abstract; draft figures before text; revise for logic, then clarity, then language; check numbers match tables; read aloud; get a colleague to attack it.",
+  "tradeoffs": [
+   "More detail increases reproducibility but can bury the story; move extras to appendices/supplement.",
+   "Strong claims attract attention and scrutiny; evidence-matched claims survive review."
+  ],
+  "pitfalls": [
+   "Contributions not matching results.",
+   "Related work as a list of summaries.",
+   "Unreadable figures and undefined notation.",
+   "Over-claiming ('first', 'state-of-the-art') without proof."
+  ],
+  "interview": [
+   "What goes into a good abstract?",
+   "How do you write the contributions paragraph?",
+   "How should related work be organised?"
+  ],
+  "use": [
+   "Draft while experiments run; update the outline as results arrive."
+  ],
+  "avoid": [
+   "Don't paste text from other papers or use AI to produce unverified citations."
+  ],
+  "qa": [
+   {
+    "q": "How do you ensure the abstract is strong?",
+    "a": "It must state the problem, the gap, the method, quantitative headline results (with the baseline comparison) and the takeaway in a few sentences, and be fully understandable without the paper."
+   }
+  ]
+ },
+ {
+  "id": "rm-publishing",
+  "phase": "research-methods",
+  "group": "3 · Writing and publishing",
+  "title": "Choosing journals, ISI/Scopus indexing, peer review, responding to reviewers, publication ethics and plagiarism",
+  "tagline": "How to pick the venue, survive review, and stay on the right side of ethics.",
+  "viz": null,
+  "explain": "**Indexing and metrics.** **ISI = Web of Science Core Collection** (SCIE, SSCI, ESCI, AHCI); the **Journal Citation Reports** give the **Impact Factor** and **quartiles (Q1-Q4)** per subject category. **Scopus** gives **CiteScore/SJR/SNIP**. Check the journal on the official Master Journal List - fake \"indexed\" claims exist. Also consider CORE rankings for conferences (A*/A/B), h5-index, acceptance rate, time to first decision, APC/open-access cost, Beall-style **predatory journal** red flags (spam invitations, rapid acceptance, no real peer review, hidden fees, fake metrics).\n\n**Journal vs conference.** CS/AI: top conferences (NeurIPS, ICML, ICLR, CVPR, ACL, AAAI) are prestigious, fast, page-limited; journals (IEEE TPAMI, TNNLS, TKDE, JMLR, Pattern Recognition, Neural Networks, Information Sciences, Expert Systems with Applications, Applied Soft Computing, Knowledge-Based Systems, Engineering Applications of AI, Scientific Reports, Elsevier/Springer/IEEE Access applied venues) allow long, thorough studies. Many application-domain ISI journals (energy, civil, medical, finance) value solid methodology on domain data.\n\n**Choosing a venue**: scope fit (read recent issues), your contribution type, desired speed, audience, indexing, budget; write the paper **for** the journal's style; shortlist 3 venues in decreasing ambition; follow author guidelines exactly; check the template and word/page limits. **Preprint** on arXiv (check the journal's policy) for visibility and priority.\n\n**Submission package**: manuscript (anonymised if double-blind), **cover letter** (why it fits, contribution in 3 lines, no conflicts, suggested/excluded reviewers), highlights, graphical abstract, supplementary material, code/data link, ethics and conflict statements, ORCID, all authors' approvals.\n\n**Peer review process**: editor desk check → reviewers (single/double-blind) → decision: accept, minor revision, major revision, reject. A **revision is good news**. Reviewers evaluate novelty, rigour, clarity, significance and reproducibility.\n\n**Responding to reviewers**: be polite and grateful even to unfair comments; produce a **point-by-point response letter**: quote each comment, state your answer, and show the exact change (page/line) in the revised manuscript with highlighted/tracked changes; add experiments when requested (new baselines, significance tests, datasets) rather than arguing; if you disagree, explain with evidence respectfully; never ignore a comment; meet the deadline. After rejection: read the feedback, improve, resubmit elsewhere (rejection is normal; a 20-40% acceptance rate means most papers are rejected at least once).\n\n**Publication ethics**: **plagiarism** (copying text, ideas or figures without citation; self-plagiarism/duplicate submission), similarity checks (iThenticate/Turnitin; aim low similarity and rewrite in your own words), proper citation and permissions for figures, **authorship** (ICMJE criteria, CRediT roles, no gift or ghost authors), data fabrication/falsification and image manipulation, conflicts of interest, informed consent/IRB, honest disclosure of AI-assisted writing and tools per journal policy, responsible data use and licences, correcting errors via corrigenda. Retractions damage careers - when in doubt, cite and disclose.",
+  "tradeoffs": [
+   "Top-tier venues give impact but low acceptance; mid-tier indexed journals give faster, more certain outcomes.",
+   "Open access increases reach at an APC cost."
+  ],
+  "pitfalls": [
+   "Submitting to a journal without reading its recent papers.",
+   "Predatory journals that harm credibility.",
+   "Defensive or incomplete reviewer responses.",
+   "Simultaneous submission to several journals."
+  ],
+  "interview": [
+   "What is the difference between ISI and Scopus?",
+   "How do you respond to a harsh reviewer?",
+   "What counts as plagiarism?"
+  ],
+  "use": [
+   "Shortlist venues while writing the introduction."
+  ],
+  "avoid": [
+   "Don't pay for guaranteed acceptance or fast-track 'indexed' journals without verification."
+  ],
+  "qa": [
+   {
+    "q": "A reviewer asks for an experiment you think is unnecessary. What do you do?",
+    "a": "Usually run it - it is cheap relative to a rejection - and add it to the paper or supplement. If it is truly infeasible or out of scope, explain concisely with evidence and offer an alternative analysis."
+   }
+  ]
+ },
+ {
+  "id": "rm-tools-courses",
+  "phase": "research-methods",
+  "group": "4 · Tools, courses and your plan",
+  "title": "The researcher's toolbox and university courses (CS229, CS230, MIT OCW, CMU)",
+  "tagline": "What each tool is for, and the course sequence that covers the whole curriculum.",
+  "viz": null,
+  "explain": "**Software and tools**\n- **Python** - main language; **Jupyter Notebook / JupyterLab** - interactive experiments and figures; **Google Colab / Kaggle Notebooks** - free GPUs/TPUs (watch sessions limits and data privacy).\n- **PyTorch** (research default), **TensorFlow/Keras** (production ecosystem, TF Lite/TFX), **JAX** (functional, fast research), **Scikit-learn** (classical ML), **XGBoost/LightGBM/CatBoost**, **Hugging Face Transformers/Datasets**, **PyTorch Lightning** (training boilerplate).\n- **MATLAB** (signal processing, control, engineering toolboxes), **R** (statistics, ggplot2, mixed models, survival), **SPSS** (GUI statistics common in social/medical fields), **Statsmodels/SciPy** for scripted statistics.\n- **LaTeX** and **Overleaf** (writing), **Zotero / Mendeley** (reference management; Better BibTeX), draw.io/TikZ/Inkscape for figures.\n- **Git/GitHub** (version control, collaboration, releases + Zenodo DOI), **DVC** for data versions.\n- **Weights & Biases** and **MLflow** (experiment tracking, model registry), **TensorBoard**, **Optuna** (hyper-parameter optimisation), **Hydra/OmegaConf** (configs), **Docker/conda/uv** (environments), **Ray/Slurm** for clusters.\nSet up once: project template, seed utility, config system, logging, plotting style, citation library, LaTeX template.\n\n**University courses (check current official pages)**\n- **Stanford CS229 - Machine Learning**: regression, classification, SVMs, kernels, neural networks, clustering, PCA, RL, learning theory (rigorous math; lecture notes by Andrew Ng). cs229.stanford.edu\n- **Stanford CS230 - Deep Learning**: neural networks, CNNs, RNNs/LSTMs, optimisation, regularisation, project practice. cs230.stanford.edu\n- **MIT OpenCourseWare**: 18.06 Linear Algebra (Strang), 18.05 Probability & Statistics, 6.036 / 6.390 Intro ML, 6.S191 intro deep learning, 18.065 Matrix methods in data analysis & ML. ocw.mit.edu\n- **Carnegie Mellon ML Department**: 10-601/10-701 Machine Learning, 10-708 Probabilistic Graphical Models, 10-703 Deep RL, 11-785 Deep Learning, 11-711 Advanced NLP. ml.cmu.edu\n- Also: Stanford CS224N (NLP), CS231n (vision), CS234 (RL), CS236 (generative models), CS329S (ML systems), Berkeley CS285 (deep RL), fast.ai, Andrej Karpathy's *Zero to Hero*, d2l.ai, 3Blue1Brown, StatQuest, Murphy's *Probabilistic ML*, Bishop's *PRML*, Goodfellow's *Deep Learning*, Hastie *ESL/ISLR*, Shalev-Shwartz *Understanding ML*.\n\n**How to use a course**: do the problem sets (not just lectures), re-implement algorithms from scratch (k-means, logistic regression, backprop, attention), then reproduce one paper per month.",
+  "tradeoffs": [
+   "Learning many tools shallowly vs mastering a core stack (Python + PyTorch + scikit-learn + LaTeX + Git).",
+   "Video courses are accessible; problem sets give the real learning."
+  ],
+  "pitfalls": [
+   "Tutorial hell without projects.",
+   "Tool-hopping instead of finishing experiments.",
+   "Uploading private/clinical data to cloud notebooks."
+  ],
+  "interview": [
+   "Which tools do you use for experiment tracking and why?",
+   "How do you ensure reproducibility?",
+   "Which course covers SVM and learning theory?"
+  ],
+  "use": [
+   "Set up the research stack in week one; pick one course per study block."
+  ],
+  "avoid": [
+   "Don't switch frameworks mid-project."
+  ],
+  "qa": [
+   {
+    "q": "Why track experiments with MLflow/W&B?",
+    "a": "They record parameters, metrics, code versions and artefacts for every run, so results are comparable and reproducible, and the final tables and ablations can be traced to specific runs."
+   }
+  ]
+ },
+ {
+  "id": "rm-roadmap-18",
+  "phase": "research-methods",
+  "group": "4 · Tools, courses and your plan",
+  "title": "The 18-month plan, priority table, principles of a strong paper and personalising your path",
+  "tagline": "A schedule from mathematics to a submitted ISI paper, and how to adapt it to your field and time.",
+  "viz": null,
+  "explain": "**Indicative plan (12-15 hours/week)**\n- **Months 1-2 - Mathematics and Python**: linear algebra, calculus, probability, statistics, NumPy, Pandas. *Output*: derive the normal equations and PCA by hand; clean a real dataset.\n- **Months 3-4 - Machine-learning fundamentals**: regression, classification, clustering, SVM, decision trees, evaluation. *Output*: 5 classical models on one dataset with proper CV and a report.\n- **Months 5-6 - Advanced ML**: ensembles, feature selection, optimisation, XAI. *Output*: tuned gradient-boosting pipeline with SHAP analysis and significance tests.\n- **Months 7-9 - Deep learning**: neural nets, backprop, CNN, RNN, LSTM, GRU. *Output*: implement backprop from scratch; image and sequence projects in PyTorch.\n- **Months 10-11 - Advanced deep learning**: Transformers, attention, autoencoders, generative models. *Output*: small Transformer, VAE/diffusion toy, fine-tune a pretrained model.\n- **Months 12-13 - Research methodology**: literature review, research gap, experimental design, statistics. *Output*: comparison matrix of 40 papers, a 1-page gap statement, an experiment plan.\n- **Months 14-15 - Research implementation**: select the problem, build models, run experiments. *Output*: baseline results, first proposed-model results, ablation plan.\n- **Months 16-18 - Scientific publication**: analyse results, ablations, write and submit. *Output*: manuscript, code release, cover letter, submission.\n\n**Priorities for ISI research** (Essential → Research-dependent)\n1. Statistics & probability (essential) · 2. Python (essential) · 3. Data preprocessing (essential) · 4. Classical ML (essential) · 5. Deep-learning fundamentals (essential) · 6. Model evaluation (essential) · 7. Optimisation (very high) · 8. Ensemble learning (very high) · 9. Explainable AI (very high) · 10. Hybrid ML-DL models (very high) · 11. Research methodology (essential) · 12. Statistical significance testing (essential) · 13. Transformers/attention (research-dependent) · 14. Reinforcement learning (research-dependent) · 15. Generative AI (research-dependent).\n\n**Principles of a strong paper**: (1) **Originality** - a defensible contribution; (2) **A well-defined research gap** from critical review; (3) **Appropriate methodology** for the question and data; (4) **Strong baselines**, fairly tuned; (5) **Reliable evaluation** - metrics, validation, statistics; (6) **Ablation and sensitivity** studies; (7) **Reproducibility** - data, code, settings; (8) **Honest limitations**. A carefully designed classical-ML study can beat a complex neural network supported by weak experiments.\n\n**Personalising**: decide your **field** (medicine, finance, civil/mechanical/electrical engineering, environment, economics, management, CS), **current level** (beginner / Python only / basic ML / ML-not-DL / experienced), **goal** (publish an ISI paper, build a hybrid ML-DL model, PhD preparation, academic career) and **weekly time** (5-7, 8-10, 12-15, 20+ h). Then: medical diagnosis → imaging, imbalance, calibration, XAI, external validation; finance/energy forecasting → time series, hybrids, uncertainty; engineering optimisation → metaheuristics, surrogate models, multi-objective, PINNs; text → NLP/LLMs.\n\n**Next step**: finish the maths + Python foundations, choose a focused application area, read 40-60 papers there, and build the research project around one clearly stated gap. Use this platform's phases in order - Math & ML → Classical ML → Advanced ML → Deep Learning → Research Methods - and tick off every checklist item.",
+  "tradeoffs": [
+   "Depth in one application area beats shallow coverage of everything for a publishable paper.",
+   "A longer timeline reduces burnout; compressing it requires cutting breadth, not rigour."
+  ],
+  "pitfalls": [
+   "Starting experiments before reading the literature.",
+   "Planning without deliverables per period.",
+   "Choosing the method before the problem."
+  ],
+  "interview": [
+   "What would you cut from the plan with 8 hours/week?",
+   "Which topics are essential for any ISI paper?",
+   "How do you choose a field-specific specialisation?"
+  ],
+  "use": [
+   "Copy the plan into a calendar with weekly outputs; review monthly."
+  ],
+  "avoid": [
+   "Don't wait to be 'ready': start the literature matrix by month 5."
+  ],
+  "qa": [
+   {
+    "q": "Is a deep model necessary for an ISI paper?",
+    "a": "No. Journals reward a well-defined gap, rigorous methodology, fair baselines and statistics; a carefully validated classical or hybrid model can be stronger than a deep network with weak experiments."
+   }
+  ]
+ }
+]

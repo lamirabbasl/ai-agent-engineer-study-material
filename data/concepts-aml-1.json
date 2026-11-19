@@ -1,0 +1,386 @@
+[
+ {
+  "id": "aml-kernels",
+  "phase": "advanced-ml",
+  "group": "1 · Kernels and probabilistic models",
+  "title": "Kernel methods: RKHS, Mercer's theorem, kernel ridge regression, kernel design",
+  "tagline": "Do linear algebra in an infinite-dimensional feature space using only a similarity function.",
+  "viz": "svm-lab",
+  "explain": "**Idea.** Map inputs through $\\phi:\\mathcal X\\to\\mathcal F$ and learn a linear model there. If the algorithm only needs inner products, replace them by a **kernel** $k(x,x')=\\langle\\phi(x),\\phi(x')\\rangle$ and never compute $\\phi$.\n\n**Valid kernels (Mercer).** $k$ is a valid (positive-semi-definite) kernel iff every Gram matrix $K_{ij}=k(x_i,x_j)$ is symmetric PSD. Closure: sums, products, positive scalings, $f(x)k(x,x')f(x')$, and compositions with exp preserve validity. Standard kernels: linear, polynomial, RBF/Gaussian (universal), Laplacian, Matérn, periodic, chi-square (histograms), string/spectrum, graph (random-walk, Weisfeiler-Lehman), tree kernels, **NTK** (neural tangent kernel), **Fisher kernels**.\n\n**RKHS and the representer theorem.** Every kernel defines a reproducing-kernel Hilbert space of functions. For regularised risk $\\min_f\\sum\\ell(y_i,f(x_i))+\\lambda\\|f\\|^2_{\\mathcal H}$ the minimiser has the form $f(x)=\\sum_{i=1}^n\\alpha_ik(x_i,x)$ - an $n$-dimensional problem however large $\\mathcal F$ is.\n\n**Kernel ridge regression.** $\\alpha=(K+\\lambda I)^{-1}y$, prediction $f(x)=k(x,X)\\alpha$. Same predictor as GP regression's posterior mean; cost $O(n^3)$, memory $O(n^2)$. **Kernel logistic regression**, **kernel SVM**, **kernel PCA**, **kernel K-Means**, **kernel two-sample test (MMD)** and **HSIC** (independence) all follow.\n\n**Choosing and tuning**: RBF bandwidth by the median heuristic $\\gamma=1/(2\\,\\mathrm{median}\\|x_i-x_j\\|^2)$ or CV; polynomial for known interaction order; custom kernels encode invariances (periodicity, graph structure); multiple kernel learning combines them.\n\n**Scaling**: **Nyström approximation** (low-rank $K\\approx K_{nm}K_{mm}^{-1}K_{mn}$), **random Fourier features** $\\phi(x)=\\sqrt{2/D}\\cos(\\omega^\\top x+b)$ approximating shift-invariant kernels (Bochner), inducing points, hierarchical matrices.\n\n**Why it matters today**: attention is a kernel-like similarity; GPs, SVMs and the NTK analysis of wide networks are all kernel machines; MMD appears in GAN evaluation and domain adaptation.",
+  "tradeoffs": [
+   "Convex, theoretically clean, strong on small data; poor scaling in $n$.",
+   "Kernel choice bakes in a strong inductive bias."
+  ],
+  "pitfalls": [
+   "Forgetting to scale features before an RBF kernel.",
+   "Non-PSD 'kernels' (e.g. raw tanh) cause negative eigenvalues.",
+   "Using exact kernel methods on $10^6$ samples."
+  ],
+  "interview": [
+   "State the representer theorem.",
+   "What makes a function a valid kernel?",
+   "How do random Fourier features work?"
+  ],
+  "use": [
+   "Small/medium structured data (graphs, strings), non-linear baselines, MMD-based tests."
+  ],
+  "avoid": [
+   "Avoid when $n$ is huge and a neural net or boosting will do."
+  ],
+  "qa": [
+   {
+    "q": "Why is the RBF kernel 'infinite-dimensional'?",
+    "a": "Expanding $\\exp(-\\gamma\\|x-x'\\|^2)$ as a power series gives a feature map with a component for every polynomial degree, i.e. infinitely many dimensions, yet the kernel evaluates in $O(d)$."
+   }
+  ]
+ },
+ {
+  "id": "aml-em-gmm",
+  "phase": "advanced-ml",
+  "group": "1 · Kernels and probabilistic models",
+  "title": "Latent-variable models and the EM algorithm: Gaussian Mixtures from first principles",
+  "tagline": "Derive EM via a lower bound, apply it to GMMs, and know its guarantees and failure modes.",
+  "viz": "kmeans-lab",
+  "explain": "**Problem.** With latent variables $z$ (cluster identity) the likelihood $\\log p(x|\\theta)=\\log\\sum_zp(x,z|\\theta)$ has a sum inside the log - no closed-form maximum.\n\n**ELBO derivation.** For any distribution $q(z)$: $\\log p(x|\\theta)=\\underbrace{\\mathbb E_q\\!\\left[\\log\\frac{p(x,z|\\theta)}{q(z)}\\right]}_{\\mathcal L(q,\\theta)}+KL(q(z)\\|p(z|x,\\theta))\\ge\\mathcal L(q,\\theta)$.\n- **E-step**: set $q(z)=p(z|x,\\theta^{old})$ (the posterior, \"responsibilities\") - makes the bound tight.\n- **M-step**: maximise $\\mathcal L$ over $\\theta$ (the expected complete-data log-likelihood $Q(\\theta,\\theta^{old})$).\nEach iteration **never decreases** the likelihood; it converges to a local maximum/saddle, so use restarts.\n\n**Gaussian Mixture Model.** $p(x)=\\sum_{k=1}^K\\pi_k\\mathcal N(x|\\mu_k,\\Sigma_k)$.\n- E-step: $\\gamma_{ik}=\\frac{\\pi_k\\mathcal N(x_i|\\mu_k,\\Sigma_k)}{\\sum_j\\pi_j\\mathcal N(x_i|\\mu_j,\\Sigma_j)}$.\n- M-step with $N_k=\\sum_i\\gamma_{ik}$: $\\pi_k=N_k/N$, $\\mu_k=\\frac1{N_k}\\sum\\gamma_{ik}x_i$, $\\Sigma_k=\\frac1{N_k}\\sum\\gamma_{ik}(x_i-\\mu_k)(x_i-\\mu_k)^\\top$.\nK-Means is the limit of GMM with isotropic covariances $\\sigma^2\\to0$ and hard assignments.\n\n**Practical issues**: initialise from K-Means; regularise covariances ($+\\epsilon I$) to avoid singularities (a component collapsing onto one point gives infinite likelihood); covariance types (spherical, diagonal, tied, full); choose $K$ by **BIC** $=-2\\log L+p\\ln n$ (or AIC), or a Dirichlet-process / variational Bayesian GMM; slow convergence when components overlap.\n\n**EM beyond GMM**: HMM (Baum-Welch), factor analysis / probabilistic PCA, mixture of experts, topic models (pLSA), missing-data imputation, semi-supervised learning (unlabeled data as latent labels), **variational EM / VAEs** (when the exact posterior is intractable, learn an amortised $q_\\phi$).\n\n**Generative use**: sample $z\\sim\\text{Cat}(\\pi)$ then $x\\sim\\mathcal N(\\mu_z,\\Sigma_z)$; density estimation; anomaly detection by low likelihood.",
+  "tradeoffs": [
+   "Soft, probabilistic, flexible shapes; but local optima, singularities and $K$ selection.",
+   "More covariance freedom fits better and overfits faster."
+  ],
+  "pitfalls": [
+   "Singular covariance collapse.",
+   "Interpreting components as true clusters when the data are not Gaussian.",
+   "Choosing $K$ by likelihood alone (always increases)."
+  ],
+  "interview": [
+   "Derive the E and M steps of a GMM.",
+   "Why does EM increase the likelihood monotonically?",
+   "K-Means as a special case of EM?"
+  ],
+  "use": [
+   "Soft clustering, density estimation, speaker/voice models, background subtraction."
+  ],
+  "avoid": [
+   "Do not use full-covariance GMMs in high dimension with few samples."
+  ],
+  "qa": [
+   {
+    "q": "Why is the E-step setting $q$ to the posterior?",
+    "a": "The gap between the log-likelihood and the ELBO is $KL(q\\|p(z|x))$, which is zero exactly when $q$ equals the posterior; so the bound touches the objective and the M-step improvement is guaranteed to improve the true likelihood."
+   }
+  ]
+ },
+ {
+  "id": "aml-hmm-crf",
+  "phase": "advanced-ml",
+  "group": "1 · Kernels and probabilistic models",
+  "title": "Sequence models: Hidden Markov Models (forward, Viterbi, Baum-Welch) and Conditional Random Fields",
+  "tagline": "Decode hidden state sequences with dynamic programming; discriminative structured prediction with CRFs.",
+  "viz": "hmm-lab",
+  "explain": "**Markov chain.** $P(s_t|s_{1:t-1})=P(s_t|s_{t-1})$ with transition matrix $A_{ij}$.\n\n**HMM.** Hidden states $s_t\\in\\{1..K\\}$ with transitions $A$, emission distributions $B_k(x_t)$ (categorical or Gaussian), initial $\\pi$. Joint: $p(x_{1:T},s_{1:T})=\\pi_{s_1}B_{s_1}(x_1)\\prod_tA_{s_{t-1}s_t}B_{s_t}(x_t)$. Three problems:\n1. **Evaluation** $p(x_{1:T})$: **forward algorithm** $\\alpha_t(j)=\\left[\\sum_i\\alpha_{t-1}(i)A_{ij}\\right]B_j(x_t)$, $O(K^2T)$ instead of $K^T$.\n2. **Decoding** best path: **Viterbi** $\\delta_t(j)=\\max_i\\delta_{t-1}(i)A_{ij}\\cdot B_j(x_t)$ with back-pointers; work in log space.\n3. **Learning**: **Baum-Welch** (EM): E-step uses forward-backward to get $\\gamma_t(i)=P(s_t=i|x)$ and $\\xi_t(i,j)$; M-step re-estimates $A,B,\\pi$. **Forward-backward smoothing** gives posterior marginals.\n\nApplications: speech recognition (classic), POS tagging, gene finding, activity recognition, regime detection in finance, anomaly detection in sequences. Limits: first-order Markov, generative, restrictive emission models. Extensions: hierarchical HMM, input-output HMM, switching linear dynamical systems, **Kalman filter** (continuous-state analogue with Gaussian linear dynamics).\n\n**CRF (Conditional Random Field).** A discriminative model of $p(y_{1:T}|x)$ without modelling $p(x)$: linear-chain CRF $p(y|x)=\\frac1{Z(x)}\\exp\\sum_t\\sum_k w_kf_k(y_{t-1},y_t,x,t)$, arbitrary overlapping features of the whole input (word shape, suffix, neighbours, gazetteers). Trained by maximising conditional log-likelihood (gradient = observed − expected feature counts, with forward-backward for expectations), decoded with Viterbi. It avoids the **label bias** of MEMMs by global normalisation $Z(x)$.\n\n**Uses**: named-entity recognition, chunking, POS, segmentation, image labelling (grid CRFs, DenseCRF post-processing of segmentation nets). Modern pipelines put a neural encoder (BiLSTM / Transformer) beneath a CRF layer.\n\n**HMM vs CRF**: HMM generative, features limited to the current emission; CRF discriminative, rich features, usually more accurate with enough labelled data.",
+  "tradeoffs": [
+   "HMMs train unsupervised with tiny data; CRFs need labelled sequences but use richer features.",
+   "Linear-chain inference is exact and fast; general-graph CRFs need approximations."
+  ],
+  "pitfalls": [
+   "Numerical underflow without scaling/log-space.",
+   "Choosing too many states.",
+   "Treating Viterbi path as the sequence of marginally most-likely states (they differ)."
+  ],
+  "interview": [
+   "Describe the forward algorithm and its complexity.",
+   "Viterbi vs forward-backward?",
+   "Why CRFs over MEMMs?"
+  ],
+  "use": [
+   "Sequence labelling, regime detection, speech, bioinformatics."
+  ],
+  "avoid": [
+   "Do not use HMMs when long-range dependencies dominate; use RNN/Transformers."
+  ],
+  "qa": [
+   {
+    "q": "Complexity of Viterbi?",
+    "a": "$O(K^2T)$ time and $O(KT)$ memory for back-pointers (K states, T steps), versus $O(K^T)$ brute force."
+   }
+  ]
+ },
+ {
+  "id": "aml-pgm",
+  "phase": "advanced-ml",
+  "group": "1 · Kernels and probabilistic models",
+  "title": "Probabilistic graphical models: Bayesian networks, Markov random fields, d-separation, inference and structure learning",
+  "tagline": "Factorise a joint distribution over a graph, read conditional independence off the picture, and do inference.",
+  "viz": null,
+  "explain": "**Bayesian network (directed).** A DAG; each node has a conditional distribution given its parents: $p(x_1..x_n)=\\prod_ip(x_i|\\mathrm{pa}(x_i))$. Compactness: a binary network with max $k$ parents needs $O(n2^k)$ numbers vs $2^n-1$. Examples: naive Bayes (class → features), HMM, medical diagnosis (Disease → Symptoms), causal DAGs.\n\n**d-separation** (reading independence): a path is blocked by observing a *chain* middle $A\\to M\\to B$, a *fork* $A\\leftarrow M\\to B$, or by *not* observing a **collider** $A\\to M\\leftarrow B$ nor its descendants. Observing a collider makes parents dependent (\"explaining away\"). If all paths between $X$ and $Y$ are blocked by $Z$, then $X\\perp Y|Z$.\n\n**Markov random field / undirected model.** Factorises over cliques: $p(x)=\\frac1Z\\prod_c\\psi_c(x_c)$ with potential functions; **Hammersley-Clifford**: positive distributions satisfying the local Markov property are Gibbs distributions. Examples: Ising/Potts models, image denoising and segmentation grids, Boltzmann machines. Converting between forms: moralisation (BN→MRF). **Factor graphs** unify both.\n\n**Inference** (compute $p(x_q|x_e)$):\n- **Exact**: variable elimination, junction-tree / belief propagation on trees (messages $m_{i\\to j}(x_j)=\\sum_{x_i}\\psi_{ij}\\prod_{k\\ne j}m_{k\\to i}$), cost exponential in **treewidth**.\n- **Approximate**: loopy belief propagation, **MCMC** (Gibbs sampling, Metropolis-Hastings), **variational inference** (mean field), importance sampling / particle filters.\n- **MAP/MPE**: max-product, graph cuts, ILP.\n\n**Learning**: parameters by counting (complete data, MLE/Dirichlet-smoothed MAP) or EM (missing data); **structure learning** by score-based search (BIC, K2) or constraint-based tests (PC algorithm); Markov-network learning needs inference in the loop ($\\nabla\\log p=$ observed − expected statistics).\n\n**Dynamic/temporal models**: dynamic Bayesian networks, Kalman filters, HMMs are PGMs unrolled in time. **Deep link**: VAEs, normalising flows and diffusion models are latent-variable PGMs with neural conditionals.",
+  "tradeoffs": [
+   "Interpretable structure and principled uncertainty vs expensive inference and structure learning.",
+   "Directed models encode causal-like asymmetry; undirected encode symmetric correlation."
+  ],
+  "pitfalls": [
+   "Reading arrows as causation without causal assumptions.",
+   "Conditioning on a collider.",
+   "Exact inference on high-treewidth graphs."
+  ],
+  "interview": [
+   "Explain d-separation with a collider example.",
+   "Bayesian network vs MRF?",
+   "Why is inference NP-hard in general?"
+  ],
+  "use": [
+   "Diagnosis/reliability, expert systems, structured prediction, causal reasoning."
+  ],
+  "avoid": [
+   "Do not use them when you have abundant data and no useful structure; neural nets are simpler."
+  ],
+  "qa": [
+   {
+    "q": "Explaining away - give an example.",
+    "a": "Alarm ← Burglary, Earthquake. Burglary and Earthquake are independent, but once the alarm is known to have rung, learning that an earthquake occurred lowers the probability of a burglary: conditioning on the collider (Alarm) couples its parents."
+   }
+  ]
+ },
+ {
+  "id": "aml-sampling-vi",
+  "phase": "advanced-ml",
+  "group": "1 · Kernels and probabilistic models",
+  "title": "Approximate Bayesian inference: Monte Carlo, importance sampling, MCMC (Metropolis-Hastings, Gibbs, HMC) and variational inference",
+  "tagline": "How to compute posteriors you cannot integrate - the engine behind Bayesian ML.",
+  "viz": "kl-lab",
+  "explain": "**Goal.** Compute expectations $\\mathbb E_{p}[g(\\theta)]$ or the posterior $p(\\theta|D)=\\frac{p(D|\\theta)p(\\theta)}{p(D)}$ where the evidence $p(D)=\\int p(D|\\theta)p(\\theta)d\\theta$ is intractable.\n\n**Monte Carlo.** $\\mathbb E[g]\\approx\\frac1N\\sum g(\\theta_i)$, error $O(1/\\sqrt N)$ independent of dimension. **Rejection sampling**: sample from a proposal $q$ and accept with probability $p/(Mq)$ (inefficient in high-dim). **Importance sampling**: $\\mathbb E_p[g]=\\mathbb E_q[g\\,p/q]$ with weights $w=p/q$; effective sample size $(\\sum w)^2/\\sum w^2$; weight degeneracy in high-dim. **Sequential Monte Carlo (particle filters)** apply it over time.\n\n**MCMC.** Build a Markov chain whose stationary distribution is the target.\n- **Metropolis-Hastings**: propose $\\theta'\\sim q(\\cdot|\\theta)$, accept with probability $\\min\\!\\left(1,\\frac{p(\\theta')q(\\theta|\\theta')}{p(\\theta)q(\\theta'|\\theta)}\\right)$; needs $p$ only up to a constant; tune the step size (accept rate ≈ 23% in high-dim).\n- **Gibbs sampling**: cycle through variables sampling each from its full conditional; no rejection; slow for strongly correlated variables.\n- **Hamiltonian Monte Carlo / NUTS**: augment with momentum and simulate Hamiltonian dynamics using $\\nabla\\log p$ to propose distant, high-acceptance moves; the engine of Stan and PyMC.\n- **Langevin / SGLD**: gradient + noise for large-data Bayesian deep learning.\n**Diagnostics**: trace plots, burn-in, thinning, **$\\hat R$** (<1.01), effective sample size, divergences.\n\n**Variational inference (VI).** Pick a tractable family $q_\\phi(\\theta)$ and maximise the **ELBO** $\\mathbb E_q[\\log p(D,\\theta)]-\\mathbb E_q[\\log q]$ ⇔ minimise $KL(q\\|p(\\theta|D))$. **Mean-field** assumes independence between latent groups (CAVI updates); **stochastic VI** uses minibatches; **reparameterisation trick** $\\theta=\\mu+\\sigma\\epsilon$ gives low-variance gradients (VAEs, Bayes-by-backprop); **normalising-flow posteriors** relax the family. VI is fast and scalable but **under-estimates variance** (mode-seeking reverse-KL), MCMC is asymptotically exact but slower.\n\n**Choosing**: small/medium models needing trustworthy uncertainty → NUTS; big models/data → VI, Laplace approximation, deep ensembles, MC dropout, SWAG.",
+  "tradeoffs": [
+   "MCMC: accurate, slow; VI: fast, biased (too narrow).",
+   "Importance sampling is simple but collapses in high dimension."
+  ],
+  "pitfalls": [
+   "Not checking convergence/mixing.",
+   "Using too-narrow proposals (slow mixing) or too wide (low acceptance).",
+   "Believing VI uncertainties blindly."
+  ],
+  "interview": [
+   "Why does the MH acceptance ratio not need the normalising constant?",
+   "Forward vs reverse KL in VI?",
+   "How does HMC use gradients?"
+  ],
+  "use": [
+   "Bayesian regression/hierarchical models, probabilistic programming, uncertainty quantification."
+  ],
+  "avoid": [
+   "Avoid exact MCMC for huge neural nets."
+  ],
+  "qa": [
+   {
+    "q": "Why does VI underestimate posterior variance?",
+    "a": "It minimises $KL(q\\|p)$, which heavily penalises $q$ placing mass where $p$ is small but not for missing mass where $p$ is large, so $q$ becomes mode-seeking and narrower than the true posterior."
+   }
+  ]
+ },
+ {
+  "id": "aml-metaheuristics",
+  "phase": "advanced-ml",
+  "group": "2 · Evolutionary and metaheuristic optimisation",
+  "title": "Evolutionary computation and metaheuristics: GA, PSO, ACO, Simulated Annealing, DE, CMA-ES",
+  "tagline": "Population- and trajectory-based search for non-differentiable, multimodal, combinatorial problems.",
+  "viz": "meta-lab",
+  "explain": "Metaheuristics search without gradients, trading guarantees for generality. Core tension: **exploration** (cover the space) vs **exploitation** (refine good regions).\n\n**Genetic Algorithm (GA).** Population of encoded solutions (bit strings, real vectors, permutations). Loop: evaluate **fitness** → **selection** (roulette, tournament, rank) → **crossover** (one-point, uniform, SBX, order crossover for permutations) → **mutation** (bit-flip, Gaussian) → **elitism** (copy best) → replace. Schema theorem explains why short, low-order, above-average building blocks propagate. Applications: feature selection, hyper-parameter and architecture search, scheduling, routing, design.\n\n**Particle Swarm Optimisation (PSO).** Each particle has position $x$ and velocity $v$: $v\\leftarrow wv+c_1r_1(p_{best}-x)+c_2r_2(g_{best}-x)$, $x\\leftarrow x+v$. Inertia $w$ balances exploration/exploitation; social vs cognitive weights $c_1,c_2$; topologies (global, ring). Few parameters, fast for continuous problems.\n\n**Ant Colony Optimisation (ACO).** Ants build solutions on a graph guided by **pheromone** $\\tau$ and heuristic $\\eta$: choose edge $\\propto\\tau^\\alpha\\eta^\\beta$; pheromone evaporates ($\\tau\\leftarrow(1-\\rho)\\tau$) and is deposited on good tours. Natural for TSP, vehicle routing, network routing.\n\n**Simulated Annealing (SA).** Single-solution walk: propose a neighbour, accept if better, else accept with probability $e^{-\\Delta/T}$; cool $T$ slowly (geometric/logarithmic). Escapes local minima; converges to the global optimum with a logarithmic schedule (impractical), heuristic in practice.\n\n**Others**: **Differential Evolution** ($v=x_a+F(x_b-x_c)$, binomial crossover; excellent for continuous black-box), **CMA-ES** (adapts a full covariance of the search distribution; state of the art in low-dim black-box), tabu search, harmony search, grey-wolf, whale optimisation (many \"nature-inspired\" variants are near-duplicates - be sceptical in papers), **memetic algorithms** (GA + local search), **neuroevolution (NEAT)**, genetic programming (evolve programs/expressions).\n\n**Constraints**: penalty functions, repair operators, feasibility rules. **Benchmarking**: Rastrigin, Ackley, Rosenbrock, CEC suites; report mean/std over ≥30 runs with Wilcoxon/Friedman tests. Use the lab above to compare PSO, GA and SA on a multimodal landscape.",
+  "tradeoffs": [
+   "Handle any objective but give no optimality guarantee and need many evaluations.",
+   "Population methods parallelise easily; SA is cheap but sequential."
+  ],
+  "pitfalls": [
+   "Premature convergence (lost diversity).",
+   "Comparing against weak baselines or unequal evaluation budgets.",
+   "Overstating novelty of renamed algorithms."
+  ],
+  "interview": [
+   "Explain exploration vs exploitation in PSO.",
+   "Why does SA accept worse moves?",
+   "GA crossover vs mutation roles?"
+  ],
+  "use": [
+   "Combinatorial/non-differentiable problems, feature selection wrappers, NAS, engineering design."
+  ],
+  "avoid": [
+   "Do not use when gradients are available and the problem is smooth/convex."
+  ],
+  "qa": [
+   {
+    "q": "Why accept worse solutions in SA?",
+    "a": "Accepting uphill moves with probability $e^{-\\Delta/T}$ lets the search climb out of local minima while $T$ is high; as $T$ falls it becomes greedy and settles into a deep minimum."
+   }
+  ]
+ },
+ {
+  "id": "aml-multiobjective",
+  "phase": "advanced-ml",
+  "group": "2 · Evolutionary and metaheuristic optimisation",
+  "title": "Multi-objective optimisation: Pareto fronts, NSGA-II, scalarisation, hypervolume",
+  "tagline": "When accuracy, latency, fairness and cost conflict, there is no single best model - only a Pareto front.",
+  "viz": "meta-lab",
+  "explain": "**Setting.** Minimise a vector $f(x)=(f_1(x),\\dots,f_m(x))$. Solution $a$ **dominates** $b$ if $f_i(a)\\le f_i(b)\\ \\forall i$ and strictly better in at least one. The **Pareto front** is the set of non-dominated trade-offs; the decision maker picks a point from it.\n\n**Methods**\n- **Scalarisation**: weighted sum $\\sum w_if_i$ (cannot reach non-convex parts of the front), **ε-constraint** (optimise one, constrain others), **Tchebycheff**, goal programming.\n- **NSGA-II**: non-dominated sorting ranks the population into fronts; **crowding distance** keeps diversity along the front; elitist tournament selection. **NSGA-III** (many objectives) uses reference points; **MOEA/D** decomposes into scalar sub-problems; **SPEA2**.\n- **Multi-objective Bayesian optimisation** (ParEGO, EHVI).\n- **Gradient-based**: multiple-gradient descent (MGDA), Pareto-front learning for multi-task deep nets.\n\n**Quality indicators**: **hypervolume** (volume dominated up to a reference point; best single indicator), **IGD**, spread/diversity, **generational distance**. Report on benchmark suites (ZDT, DTLZ) with ≥30 independent runs.\n\n**ML applications**: accuracy vs latency/size (efficient architecture search), accuracy vs fairness, precision vs recall, feature selection (error vs number of features), hyper-parameter tuning with competing metrics, multi-task learning, reward trade-offs in RLHF.",
+  "tradeoffs": [
+   "The front shows all trade-offs but needs a final preference; many objectives make fronts huge and hard to visualise.",
+   "Weighted sums are simple but miss non-convex regions."
+  ],
+  "pitfalls": [
+   "Collapsing objectives with arbitrary weights and calling it 'multi-objective'.",
+   "Comparing fronts without a common reference point for hypervolume."
+  ],
+  "interview": [
+   "Define Pareto dominance.",
+   "Why does weighted-sum miss non-convex fronts?",
+   "What does crowding distance do?"
+  ],
+  "use": [
+   "Model-selection under multiple constraints; NAS; fair ML."
+  ],
+  "avoid": [
+   "Avoid when one objective clearly dominates the decision."
+  ],
+  "qa": [
+   {
+    "q": "Why can't a weighted sum find a point on a concave Pareto front?",
+    "a": "The weighted sum's level sets are lines (hyperplanes); a line touching a concave front only at its end points means interior points are never minimisers of any weighting."
+   }
+  ]
+ },
+ {
+  "id": "aml-transfer-active-online",
+  "phase": "advanced-ml",
+  "group": "3 · Learning paradigms beyond supervised",
+  "title": "Transfer, active, online, continual and semi-supervised learning",
+  "tagline": "Learning when labels are scarce, data arrives in streams, or tasks change.",
+  "viz": null,
+  "explain": "**Transfer learning.** Reuse knowledge from a source task/domain. Strategies: **feature extraction** (freeze a pretrained backbone, train a head), **fine-tuning** (small learning rate, discriminative LRs, gradual unfreezing), **parameter-efficient** tuning (adapters, LoRA, prompt tuning), **domain adaptation** (align source/target features: MMD, DANN adversarial, CORAL), **multi-task** sharing, **zero/few-shot** transfer. Negative transfer occurs when domains differ too much.\n\n**Semi-supervised learning.** Few labels + many unlabeled: **self-training / pseudo-labelling** (confident predictions become labels), **consistency regularisation** (Π-model, Mean Teacher, UDA, FixMatch: same prediction under augmentation), **entropy minimisation**, **graph label propagation**, **co-training**, generative approaches. Assumptions: smoothness, cluster, low-density separation, manifold.\n\n**Active learning.** The learner chooses which points to label to minimise labelling cost. Query strategies: **uncertainty sampling** (least confidence, margin, entropy), **query-by-committee** (disagreement), **expected model change / error reduction**, **core-set / diversity** selection, BALD (Bayesian). Batch mode needs diversity. Use when labels are expensive (medical, legal). Pitfall: sampling bias, cold start.\n\n**Online learning.** Data arrives sequentially; update after each example, predict before seeing the label. Goal: low **regret** $\\sum\\ell_t(w_t)-\\min_w\\sum\\ell_t(w)$. Algorithms: online gradient descent ($O(\\sqrt T)$ regret), perceptron, **FTRL** (ad click prediction), AdaGrad, passive-aggressive, online random forests; **multi-armed bandits** (ε-greedy, UCB, Thompson sampling) and **contextual bandits** (LinUCB) add exploration; Hedge/EXP3 for experts and adversarial settings. Handle **concept drift** with windows, forgetting factors, detectors (ADWIN, DDM, Page-Hinkley).\n\n**Continual / lifelong learning.** Learn tasks sequentially without **catastrophic forgetting**. Families: **regularisation** (EWC: penalise changes to weights weighted by Fisher information; LwF, SI), **replay** (store/generate old examples; experience replay, GEM/A-GEM), **architecture** (progressive nets, PackNet, adapters per task), **meta/optimisation** (orthogonal gradient projection). Scenarios: task-/domain-/class-incremental (the last is hardest). Metrics: average accuracy, backward transfer, forward transfer.",
+  "tradeoffs": [
+   "Each paradigm trades labels, compute or stability for flexibility.",
+   "Pseudo-labels propagate their own mistakes; replay needs memory; regularisation limits plasticity."
+  ],
+  "pitfalls": [
+   "Evaluating transfer on data that overlaps the pretraining set.",
+   "Active-learning loops that bias toward outliers.",
+   "Reporting continual-learning accuracy without forgetting measures."
+  ],
+  "interview": [
+   "Explain EWC.",
+   "Uncertainty sampling vs query-by-committee?",
+   "What is regret in online learning?"
+  ],
+  "use": [
+   "Medical imaging (transfer + active), recommender/ads (online + bandits), robotics and edge (continual)."
+  ],
+  "avoid": [
+   "Do not fine-tune everything with a large LR on tiny data; you destroy pretrained features."
+  ],
+  "qa": [
+   {
+    "q": "Why does fine-tuning use a smaller learning rate than training from scratch?",
+    "a": "Pretrained weights already encode useful features; large updates overwrite them (catastrophic forgetting) before the new head has adapted."
+   }
+  ]
+ },
+ {
+  "id": "aml-meta-automl",
+  "phase": "advanced-ml",
+  "group": "3 · Learning paradigms beyond supervised",
+  "title": "Meta-learning and AutoML: MAML, prototypical networks, Neural Architecture Search, learning to optimise",
+  "tagline": "Learn to learn: fast adaptation from few examples and automated model design.",
+  "viz": "hypersearch-lab",
+  "explain": "**Meta-learning** trains over a distribution of tasks so that a new task can be learned from few examples. Episodic training: each episode samples a task with a **support set** (K examples/class, N classes: \"N-way K-shot\") and a **query set** for the loss.\n\n**Families**\n- **Metric-based**: learn an embedding where classification is nearest-prototype - **Siamese**, **Matching Networks**, **Prototypical Networks** (class prototype = mean embedding, softmax over distances), Relation Networks.\n- **Optimisation-based**: **MAML** learns an initialisation $\\theta$ such that a few gradient steps adapt it: inner loop $\\theta_i'=\\theta-\\alpha\\nabla_\\theta\\mathcal L_{T_i}(\\theta)$, outer loop $\\theta\\leftarrow\\theta-\\beta\\nabla_\\theta\\sum_i\\mathcal L_{T_i}(\\theta_i')$ (second-order; **FOMAML/Reptile** are first-order). Meta-LSTM learns the update rule.\n- **Model-based**: memory-augmented networks, SNAIL, hypernetworks; **in-context learning** in LLMs behaves like implicit meta-learning.\n\n**AutoML.** Automate the pipeline: data cleaning, feature engineering, model + hyper-parameter selection, ensembling. Systems: auto-sklearn (Bayesian optimisation + meta-learning warm start + ensembles), TPOT (genetic programming over pipelines), H2O, AutoGluon (stacked ensembles), FLAML (cost-frugal), Auto-PyTorch.\n\n**Neural Architecture Search (NAS).** Search space (cell/operation choices) + search strategy + performance estimation. Strategies: RL controllers (Zoph & Le), **evolution** (AmoebaNet), **differentiable** (DARTS: continuous relaxation $\\bar o=\\sum\\mathrm{softmax}(\\alpha_o)o(x)$), **one-shot/weight-sharing supernets** (ENAS, Once-for-All), **hardware-aware** NAS (latency/energy constraints, multi-objective), zero-cost proxies. Cost and reproducibility are critical - report search cost in GPU-days and compare with random search baselines.\n\n**Learning to optimise**: learned optimisers, hyper-gradient descent, population-based training.\n\n**When**: few-shot classification (rare diseases, new languages), personalisation, sim-to-real robotics, building baselines fast; AutoML for non-experts and as a strong baseline.",
+  "tradeoffs": [
+   "Meta-learning needs many related training tasks; second-order MAML is costly.",
+   "NAS improves accuracy/efficiency but search cost and variance are high."
+  ],
+  "pitfalls": [
+   "Task distributions in meta-training that don't match test tasks.",
+   "Unfair NAS comparisons (different training tricks).",
+   "Calling AutoML 'solved' without domain checks."
+  ],
+  "interview": [
+   "Explain MAML's two loops.",
+   "How do prototypical networks classify?",
+   "What is DARTS' relaxation?"
+  ],
+  "use": [
+   "Few-shot problems, automatic baselines, hardware-constrained architecture design."
+  ],
+  "avoid": [
+   "Avoid meta-learning when you have plenty of labelled data for the target task."
+  ],
+  "qa": [
+   {
+    "q": "Why is MAML 'model-agnostic'?",
+    "a": "It only requires a model trainable by gradient descent; it learns the initial parameters, not a specific architecture or task type."
+   }
+  ]
+ },
+ {
+  "id": "aml-federated-privacy",
+  "phase": "advanced-ml",
+  "group": "3 · Learning paradigms beyond supervised",
+  "title": "Federated learning and privacy-preserving ML: FedAvg, non-IID data, differential privacy, secure aggregation",
+  "tagline": "Train on data that never leaves the device, and quantify privacy loss.",
+  "viz": "fed-lab",
+  "explain": "**Federated learning.** $K$ clients keep private data; a server coordinates rounds: send the global model → each client runs $E$ local epochs → server aggregates. **FedAvg**: $w^{t+1}=\\sum_k\\frac{n_k}{n}w_k^{t+1}$. Cross-device (millions of phones, unreliable) vs cross-silo (few hospitals/banks).\n\n**Challenges**: **non-IID data** (client drift: local optima diverge → slower/biased convergence), system heterogeneity (stragglers, dropouts), communication cost (compression, sparsification, quantisation, fewer rounds), personalisation. Remedies: **FedProx** (proximal term $\\frac\\mu2\\|w-w^t\\|^2$), **SCAFFOLD** (control variates), **FedNova**, server momentum, personalised FL (fine-tuning, multi-task, clustering, FedPer), federated distillation. Use the lab above to see non-IID drift.\n\n**Privacy threats**: gradient inversion (reconstruct training images), membership inference, model inversion, attribute inference, poisoning/backdoor by malicious clients.\n\n**Differential privacy (DP).** A mechanism $M$ is $(\\varepsilon,\\delta)$-DP if for neighbouring datasets $D,D'$: $P[M(D)\\in S]\\le e^\\varepsilon P[M(D')\\in S]+\\delta$. **Laplace/Gaussian mechanisms** add noise scaled to sensitivity; **DP-SGD**: clip per-example gradients to norm $C$, add Gaussian noise $\\mathcal N(0,\\sigma^2C^2I)$, track the privacy budget with the **moments/RDP accountant**. Smaller $\\varepsilon$ = stronger privacy, lower utility; composition accumulates loss. **Local DP** (noise on-device) vs **central DP** (trusted server). **PATE** teacher ensembles.\n\n**Cryptographic tools**: **secure aggregation** (server sees only the sum), **homomorphic encryption**, **secure multi-party computation**, trusted execution environments. Combine: FL + secure aggregation + DP for strong guarantees.\n\n**Evaluation in papers**: report non-IID partition scheme (Dirichlet α), participation rate, rounds to target accuracy, communication bytes, privacy budget ε, and attacks tested.",
+  "tradeoffs": [
+   "Privacy and data locality vs slower, less accurate training.",
+   "DP noise hurts small datasets and rare classes most."
+  ],
+  "pitfalls": [
+   "Assuming FL alone is private (gradients leak).",
+   "IID partitions in experiments (unrealistically easy).",
+   "Reporting ε without δ, clipping norm, or accountant."
+  ],
+  "interview": [
+   "Why does non-IID data slow FedAvg?",
+   "Explain DP-SGD.",
+   "Secure aggregation vs differential privacy?"
+  ],
+  "use": [
+   "Keyboards, health records across hospitals, finance."
+  ],
+  "avoid": [
+   "Avoid FL if you can legally centralise the data; it is harder and costlier."
+  ],
+  "qa": [
+   {
+    "q": "What does ε control in DP?",
+    "a": "The maximum multiplicative change in output probabilities caused by one individual's data (bounded by $e^\\varepsilon$); smaller ε means outputs reveal less about any individual."
+   }
+  ]
+ },
+ {
+  "id": "aml-causal-ml",
+  "phase": "advanced-ml",
+  "group": "3 · Learning paradigms beyond supervised",
+  "title": "Causal inference and causal machine learning: potential outcomes, DAGs, do-calculus, uplift, double ML",
+  "tagline": "Move from prediction to intervention: what happens if we change X?",
+  "viz": null,
+  "explain": "**Prediction ≠ causation.** A model can predict ice-cream sales from drownings (both caused by heat); intervening on one does nothing to the other. Policy, medicine, pricing and robust ML need causal answers.\n\n**Potential outcomes (Rubin).** Each unit has $Y(1),Y(0)$; only one is observed (the *fundamental problem*). Estimands: **ATE** $=\\mathbb E[Y(1)-Y(0)]$, **ATT**, **CATE** $\\tau(x)=\\mathbb E[Y(1)-Y(0)|X=x]$ (heterogeneous effects). Identification needs **ignorability** (no unmeasured confounders given $X$), **positivity/overlap** $0<e(x)<1$ and **SUTVA** (no interference).\n\n**Structural causal models (Pearl).** DAG + structural equations. **do-operator** $P(Y|do(X))$ differs from $P(Y|X)$ because of confounding. **Back-door criterion**: adjust for a set $Z$ blocking all back-door paths: $P(y|do(x))=\\sum_zP(y|x,z)P(z)$. **Front-door**, **instrumental variables** (a variable affecting treatment but outcome only via treatment), do-calculus rules, counterfactuals (abduction-action-prediction). Beware **colliders** and **mediators** (don't adjust blindly).\n\n**Estimation.** **RCT** (randomisation removes confounding - gold standard), **propensity scores** $e(x)=P(T=1|X)$: matching, **IPW** ($\\frac{TY}{e}-\\frac{(1-T)Y}{1-e}$), stratification; **doubly robust / AIPW**; **regression adjustment**; quasi-experiments: **difference-in-differences**, **regression discontinuity**, **synthetic control**, instrumental variables.\n\n**Causal ML for heterogeneous effects.** **Meta-learners**: S-, T-, X-, R-learner, DR-learner. **Causal forests** (honest trees; GRF). **Double/Debiased ML** (Chernozhukov): use ML to estimate nuisance functions $\\mathbb E[Y|X]$ and $\\mathbb E[T|X]$ with cross-fitting, then regress residuals - valid inference despite flexible models. **TARNet/Dragonnet** neural CATE estimators. **Uplift modelling**: target customers whose behaviour *changes* because of treatment (persuadables) rather than who would buy anyway.\n\n**Causal discovery**: PC, FCI, GES, LiNGAM, NOTEARS (continuous DAG learning) - fragile without assumptions. **Causality for ML robustness**: invariant risk minimisation, spurious correlations, off-policy evaluation, counterfactual explanations, fairness.\n\n**Checks**: covariate balance after weighting, overlap plots, placebo/negative-control outcomes, sensitivity analysis (E-values, Rosenbaum bounds). Libraries: DoWhy, EconML, CausalML, grf.",
+  "tradeoffs": [
+   "Causal claims need assumptions that data alone cannot verify.",
+   "Flexible ML reduces model misspecification but not unmeasured confounding."
+  ],
+  "pitfalls": [
+   "Adjusting for colliders/mediators.",
+   "Overlap violations (extreme propensities).",
+   "Reading feature importances or SHAP values as causal effects."
+  ],
+  "interview": [
+   "Back-door criterion in your own words.",
+   "Why does randomisation identify the ATE?",
+   "What is double machine learning?"
+  ],
+  "use": [
+   "A/B-test analysis, pricing, medicine, policy evaluation, marketing uplift."
+  ],
+  "avoid": [
+   "Do not claim causality from observational regressions without a defensible identification strategy."
+  ],
+  "qa": [
+   {
+    "q": "Why not just regress Y on T and X?",
+    "a": "If $X$ is a complete confounder set and the model is correct this works, but misspecification and regularisation bias contaminate the effect. Double ML orthogonalises (residualises both Y and T on X with cross-fitting) so errors in the nuisance models have only second-order impact."
+   }
+  ]
+ }
+]

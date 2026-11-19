@@ -1,0 +1,274 @@
+[
+ {
+  "id": "rl-mdp-dp",
+  "phase": "advanced-ml",
+  "group": "4 · Reinforcement learning",
+  "title": "MDPs, Bellman equations and dynamic programming: policy evaluation, policy iteration, value iteration",
+  "tagline": "The formal frame for sequential decision-making and the exact solution when the model is known.",
+  "viz": "qlearn-lab",
+  "explain": "**The RL problem.** An agent observes state $s_t$, chooses action $a_t$, receives reward $r_{t+1}$ and a new state; goal: maximise the **return** $G_t=\\sum_{k\\ge0}\\gamma^kr_{t+k+1}$ with discount $\\gamma\\in[0,1)$. Difference from supervised learning: no labels, feedback is **evaluative and delayed**, data depends on the agent's own actions (non-i.i.d.), and it must **explore**.\n\n**Markov Decision Process** $(\\mathcal S,\\mathcal A,P,R,\\gamma)$: $P(s'|s,a)$ transitions, $R(s,a)$ rewards, Markov property. A **policy** $\\pi(a|s)$. **Value functions**: $V^\\pi(s)=\\mathbb E_\\pi[G_t|s_t=s]$, $Q^\\pi(s,a)=\\mathbb E_\\pi[G_t|s_t=s,a_t=a]$, advantage $A=Q-V$.\n\n**Bellman expectation equations**\n$$V^\\pi(s)=\\sum_a\\pi(a|s)\\sum_{s'}P(s'|s,a)[R+\\gamma V^\\pi(s')],\\quad Q^\\pi(s,a)=\\sum_{s'}P(s'|s,a)[R+\\gamma\\sum_{a'}\\pi(a'|s')Q^\\pi(s',a')].$$\n**Bellman optimality**: $V^*(s)=\\max_a\\sum_{s'}P(s'|s,a)[R+\\gamma V^*(s')]$, $Q^*(s,a)=\\sum_{s'}P[R+\\gamma\\max_{a'}Q^*(s',a')]$; $\\pi^*(s)=\\arg\\max_aQ^*(s,a)$. The Bellman operators are **$\\gamma$-contractions** in the sup norm, so fixed-point iteration converges to a unique solution (Banach).\n\n**Dynamic programming** (requires the model $P,R$):\n- **Policy evaluation**: iterate the expectation equation until $V$ converges.\n- **Policy iteration**: evaluate → greedy improvement → repeat; terminates in finitely many steps for finite MDPs.\n- **Value iteration**: iterate the optimality backup $V\\leftarrow\\max_a\\sum P[R+\\gamma V]$ - evaluation truncated to one sweep; then read off the greedy policy.\n- **Generalised policy iteration** (GPI): the pattern behind almost all RL - evaluation and improvement interleaved at any granularity. Asynchronous DP, prioritised sweeping.\nCost per sweep $O(|S|^2|A|)$; the curse of dimensionality in $|S|$ motivates sampling and function approximation.\n\n**Extensions**: POMDPs (belief states), semi-MDPs/options (temporal abstraction), continuous control, average-reward, constrained MDPs, multi-agent / stochastic games, inverse RL (infer rewards from demonstrations).\n\n**Design lessons**: reward design is the specification - misspecified rewards produce reward hacking; shaping rewards must be potential-based $F=\\gamma\\Phi(s')-\\Phi(s)$ to preserve optimal policies.",
+  "tradeoffs": [
+   "Exact DP is optimal but needs the model and small state spaces.",
+   "Higher $\\gamma$ → far-sighted but slower, higher-variance learning."
+  ],
+  "pitfalls": [
+   "Treating a non-Markov observation as state.",
+   "Sparse rewards without shaping or exploration.",
+   "Reward hacking."
+  ],
+  "interview": [
+   "Write the Bellman optimality equation.",
+   "Value iteration vs policy iteration?",
+   "Why does value iteration converge?"
+  ],
+  "use": [
+   "Planning in known small MDPs (inventory, gridworlds, queueing), theoretical grounding for all RL."
+  ],
+  "avoid": [
+   "Do not use tabular DP for large or unknown-dynamics problems."
+  ],
+  "qa": [
+   {
+    "q": "Why is the Bellman optimality operator a contraction?",
+    "a": "For any two value functions $\\|TV-TV'\\|_\\infty\\le\\gamma\\|V-V'\\|_\\infty$ because the max operator is 1-Lipschitz and rewards cancel; hence repeated application converges geometrically to the unique fixed point $V^*$."
+   }
+  ],
+  "flows": [
+   {
+    "title": "The agent-environment loop",
+    "hint": "Step through one interaction cycle.",
+    "nodes": [
+     {
+      "id": "agent",
+      "label": "Agent",
+      "sub": "policy π(a|s)",
+      "icon": "🤖"
+     },
+     {
+      "id": "env",
+      "label": "Environment",
+      "sub": "P(s'|s,a), R",
+      "icon": "🌍"
+     },
+     {
+      "id": "buf",
+      "label": "Replay / trajectory",
+      "sub": "(s,a,r,s')",
+      "icon": "🗃️"
+     },
+     {
+      "id": "learn",
+      "label": "Learner",
+      "sub": "update V / Q / π",
+      "icon": "🧠"
+     }
+    ],
+    "steps": [
+     {
+      "at": "agent",
+      "note": "Observe state s_t and sample an action a_t from the policy (explore with ε-greedy / entropy)",
+      "ms": 0
+     },
+     {
+      "at": "env",
+      "note": "Apply a_t: environment returns reward r_{t+1} and next state s_{t+1}",
+      "ms": 1
+     },
+     {
+      "at": "buf",
+      "note": "Store the transition (s_t, a_t, r_{t+1}, s_{t+1}, done)",
+      "ms": 0
+     },
+     {
+      "at": "learn",
+      "note": "Compute the TD target r + γ max_a' Q(s',a') and the error δ = target − Q(s,a)",
+      "ms": 2
+     },
+     {
+      "at": "learn",
+      "note": "Update parameters to shrink δ (table update or gradient step); policy gets greedier",
+      "ms": 1,
+      "tone": "good"
+     },
+     {
+      "at": "agent",
+      "note": "Next step uses the improved policy: generalised policy iteration",
+      "ms": 0,
+      "tone": "good"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "rl-mc-td",
+  "phase": "advanced-ml",
+  "group": "4 · Reinforcement learning",
+  "title": "Model-free RL: Monte Carlo, TD(0), TD(λ), SARSA, Q-learning, exploration",
+  "tagline": "Learn values from experience when the model is unknown; on-policy vs off-policy; bias-variance of targets.",
+  "viz": "qlearn-lab",
+  "explain": "**Monte Carlo (MC).** Estimate $V(s)$ by averaging full-episode returns $G_t$ (first-visit / every-visit). Unbiased, high variance, needs episodes to terminate, no bootstrapping. MC control uses $Q$ with exploring starts or $\\varepsilon$-soft policies.\n\n**Temporal-Difference (TD) learning.** Bootstrap from the current estimate: $V(s_t)\\leftarrow V(s_t)+\\alpha[r_{t+1}+\\gamma V(s_{t+1})-V(s_t)]$. The bracket is the **TD error** $\\delta_t$. Lower variance than MC, biased initially, online, works for continuing tasks. **n-step TD** interpolates; **TD(λ)** averages all n-step returns with weights $(1-\\lambda)\\lambda^{n-1}$, implemented efficiently by **eligibility traces** $e_t=\\gamma\\lambda e_{t-1}+\\nabla V$.\n\n**SARSA (on-policy TD control).** $Q(s,a)\\leftarrow Q+\\alpha[r+\\gamma Q(s',a')-Q(s,a)]$ where $a'$ is the action actually chosen by the behaviour ($\\varepsilon$-greedy) policy: learns the value of the policy it follows, including its exploration - safer (\"cliff walking\" path away from the edge).\n\n**Q-learning (off-policy TD control).** $Q(s,a)\\leftarrow Q+\\alpha[r+\\gamma\\max_{a'}Q(s',a')-Q(s,a)]$: learns $Q^*$ directly regardless of the behaviour policy; converges (tabular) if all pairs are visited infinitely often and $\\alpha$ decays appropriately (Robbins-Monro). Suffers **maximisation bias** (overestimates) → **Double Q-learning** uses two estimators. **Expected SARSA** reduces variance by averaging over $a'$.\n\n**Exploration**: ε-greedy (decay ε), softmax/Boltzmann, optimistic initialisation, **UCB**, Thompson sampling, count-based bonuses, curiosity/intrinsic motivation (ICM, RND) for sparse rewards.\n\n**On- vs off-policy**: on-policy methods evaluate/improve the policy generating data (stable, sample-inefficient); off-policy methods learn about a target policy from other data (replay buffers, offline RL) but need importance sampling or max operators and can diverge with function approximation (**deadly triad**: bootstrapping + off-policy + function approximation).\n\n**Play with it**: in the Q-learning lab, vary α, γ, ε and watch the value heat-map and greedy arrows converge on a gridworld.",
+  "tradeoffs": [
+   "MC: unbiased/high-variance; TD: biased/low-variance; λ and n tune the balance.",
+   "Off-policy methods are sample-efficient but less stable."
+  ],
+  "pitfalls": [
+   "Constant α with noisy rewards never converges exactly.",
+   "ε never decays (suboptimal forever) or decays too fast (stuck).",
+   "Maximisation bias."
+  ],
+  "interview": [
+   "SARSA vs Q-learning in cliff walking?",
+   "Why TD over MC?",
+   "What is the deadly triad?"
+  ],
+  "use": [
+   "Games, simple control, recommendation bandits, tabular tasks."
+  ],
+  "avoid": [
+   "Do not use tabular methods for images or continuous states."
+  ],
+  "qa": [
+   {
+    "q": "Why is Q-learning off-policy?",
+    "a": "Its target uses $\\max_{a'}Q(s',a')$ - the greedy policy's value - not the action the behaviour policy took, so it learns about the greedy policy while following an exploratory one."
+   }
+  ]
+ },
+ {
+  "id": "rl-deep-value",
+  "phase": "advanced-ml",
+  "group": "4 · Reinforcement learning",
+  "title": "Deep value-based RL: function approximation, DQN, Double/Dueling/Prioritised DQN, Rainbow",
+  "tagline": "Replace the Q-table with a neural network and stabilise the training with replay and target networks.",
+  "viz": "backprop-lab",
+  "explain": "**Function approximation.** For large/continuous states represent $Q(s,a;\\theta)$ with a network and minimise the **TD loss** $L(\\theta)=\\mathbb E\\left[(r+\\gamma\\max_{a'}Q(s',a';\\theta^-)-Q(s,a;\\theta))^2\\right]$ with semi-gradient updates. Naively this diverges (the deadly triad).\n\n**DQN (Mnih et al., 2015)** stabilises with:\n1. **Experience replay**: store transitions in a buffer, train on random minibatches → breaks temporal correlation, reuses data.\n2. **Target network** $\\theta^-$: a lagged copy (hard update every $C$ steps or soft Polyak $\\theta^-\\leftarrow\\tau\\theta+(1-\\tau)\\theta^-$) → fixed regression target.\n3. Reward clipping, frame stacking, Huber loss, ε-annealing; CNN on raw pixels (Atari).\n\n**Improvements**\n- **Double DQN**: select the action with the online net, evaluate with the target net: $y=r+\\gamma Q(s',\\arg\\max_{a'}Q(s',a';\\theta);\\theta^-)$ - fights overestimation.\n- **Dueling DQN**: separate streams for $V(s)$ and advantage $A(s,a)$: $Q=V+A-\\overline A$.\n- **Prioritised replay**: sample ∝ |TD error|$^\\alpha$ with importance weights.\n- **Noisy nets** (parametric exploration), **n-step returns**, **distributional RL** (C51/QR-DQN model the return distribution), **Rainbow** combines all.\n- **Recurrent DQN (R2D2)** for partial observability; **Ape-X / distributed** actors; **offline RL** (CQL, IQL) learns from a fixed dataset by penalising out-of-distribution actions.\n\n**Limitations**: discrete actions only (maximisation over actions), sample inefficiency, sensitivity to hyper-parameters and seeds - report many seeds with confidence intervals (Henderson et al.), use rliable-style aggregate metrics.\n\n**Practical recipe**: normalise observations, clip gradients, large replay (1e5-1e6), learn-start after random steps, target update tuned, track Q-value magnitudes and episode return.",
+  "tradeoffs": [
+   "Powerful with images; brittle without replay/target tricks.",
+   "Off-policy replay is sample-efficient but biased by stale data."
+  ],
+  "pitfalls": [
+   "Overestimated Q-values spiralling upwards.",
+   "Replay buffer too small/too off-policy.",
+   "Reporting a single seed."
+  ],
+  "interview": [
+   "Why do we need a target network?",
+   "What does Double DQN fix?",
+   "Explain the dueling architecture."
+  ],
+  "use": [
+   "Discrete-action games, simple control, recommender decision processes."
+  ],
+  "avoid": [
+   "Do not use DQN for continuous actions; use actor-critic methods."
+  ],
+  "qa": [
+   {
+    "q": "How does experience replay help?",
+    "a": "Sampling random past transitions decorrelates updates (i.i.d.-like minibatches), stabilises the data distribution and lets each interaction be reused for many gradient steps."
+   }
+  ]
+ },
+ {
+  "id": "rl-policy-gradient",
+  "phase": "advanced-ml",
+  "group": "4 · Reinforcement learning",
+  "title": "Policy gradients and actor-critic: REINFORCE, A2C/A3C, TRPO, PPO, DDPG, TD3, SAC",
+  "tagline": "Optimise the policy directly: continuous actions, stochastic policies, and the algorithms used in practice and in RLHF.",
+  "viz": null,
+  "explain": "**Policy gradient theorem.** For $J(\\theta)=\\mathbb E_{\\tau\\sim\\pi_\\theta}[G]$: $\\nabla_\\theta J=\\mathbb E\\left[\\sum_t\\nabla_\\theta\\log\\pi_\\theta(a_t|s_t)\\,\\Psi_t\\right]$ with $\\Psi_t=G_t$ (REINFORCE), $G_t-b(s_t)$ (baseline), $Q(s_t,a_t)$ or the **advantage** $A(s_t,a_t)$ (lowest variance). Gaussian policy for continuous actions; softmax for discrete.\n\n**REINFORCE**: Monte-Carlo, unbiased, high variance; a learned baseline $V(s)$ reduces variance without bias.\n\n**Actor-critic.** Actor $\\pi_\\theta$ + critic $V_\\phi$ (or $Q_\\phi$) trained by TD; actor updated with $\\delta_t\\nabla\\log\\pi$. **A2C/A3C**: synchronous/asynchronous parallel actors with n-step advantages; **GAE(λ)** $\\hat A_t=\\sum(\\gamma\\lambda)^l\\delta_{t+l}$ trades bias/variance.\n\n**Trust-region methods.** A bad step destroys the policy and the data distribution with it. **TRPO** maximises the surrogate $\\mathbb E[\\frac{\\pi_\\theta}{\\pi_{old}}A]$ subject to $KL(\\pi_{old}\\|\\pi_\\theta)\\le\\delta$ (natural gradient, conjugate gradients). **PPO** replaces the constraint with a **clipped objective**\n$$L^{CLIP}=\\mathbb E\\left[\\min\\!\\left(r_tA_t,\\ \\mathrm{clip}(r_t,1-\\epsilon,1+\\epsilon)A_t\\right)\\right],\\ r_t=\\frac{\\pi_\\theta}{\\pi_{old}},$$\nplus a value loss and entropy bonus, with several epochs of minibatch SGD per rollout. Simple, robust - the default on-policy algorithm (and used in RLHF for LLMs; GRPO/DPO are related).\n\n**Deterministic and off-policy actor-critics (continuous control)**\n- **DDPG**: deterministic actor $\\mu_\\theta(s)$, critic $Q_\\phi(s,a)$ with target networks and replay; policy gradient $\\nabla_\\theta Q(s,\\mu_\\theta(s))$; brittle.\n- **TD3**: twin critics (take the min to curb overestimation), delayed actor updates, target-policy smoothing noise.\n- **SAC (Soft Actor-Critic)**: maximum-entropy RL, objective $\\mathbb E[\\sum r+\\alpha\\mathcal H(\\pi(\\cdot|s))]$; stochastic policy with reparameterisation, twin critics, automatic temperature $\\alpha$ tuning; state of the art sample efficiency and stability on continuous control.\n\n**Choosing**: discrete actions + simple → DQN/PPO; continuous robotics → SAC/TD3; massively parallel sim → PPO; limited samples → SAC; LLM alignment → PPO/GRPO with KL penalty to the reference model. **Also**: model-based RL (Dyna, MBPO, Dreamer, MuZero), imitation learning (behaviour cloning, DAgger, GAIL), multi-agent RL (MADDPG, QMIX), hierarchical RL, offline RL, safe RL.",
+  "tradeoffs": [
+   "On-policy (PPO): stable, sample-hungry; off-policy (SAC/TD3): sample-efficient, more hyper-parameter sensitive.",
+   "Entropy regularisation improves exploration but needs tuning."
+  ],
+  "pitfalls": [
+   "High-variance gradients with no baseline.",
+   "Policy collapse from too-large steps.",
+   "Implementation details dominate PPO performance (normalisation, clipping, GAE)."
+  ],
+  "interview": [
+   "Derive the policy-gradient (log-derivative) trick.",
+   "Why does PPO clip the ratio?",
+   "What does SAC's entropy term do?"
+  ],
+  "use": [
+   "Robotics/continuous control (SAC/TD3), games (PPO), LLM alignment."
+  ],
+  "avoid": [
+   "Avoid RL when supervised or bandit formulations work; RL is expensive and fragile."
+  ],
+  "qa": [
+   {
+    "q": "Derive the log-derivative trick.",
+    "a": "$\\nabla_\\theta\\mathbb E_{\\tau\\sim p_\\theta}[R(\\tau)]=\\int R\\,\\nabla_\\theta p_\\theta\\,d\\tau=\\int R\\,p_\\theta\\nabla_\\theta\\log p_\\theta\\,d\\tau=\\mathbb E[R\\,\\nabla_\\theta\\log p_\\theta(\\tau)]$, and the transition probabilities (independent of $\\theta$) drop out of $\\nabla\\log p_\\theta$, leaving only $\\sum_t\\nabla\\log\\pi_\\theta(a_t|s_t)$."
+   }
+  ],
+  "flows": [
+   {
+    "title": "PPO training iteration",
+    "hint": "Collect, estimate advantages, optimise the clipped objective.",
+    "nodes": [
+     {
+      "id": "roll",
+      "label": "Rollout workers",
+      "sub": "run π_old",
+      "icon": "🎮"
+     },
+     {
+      "id": "gae",
+      "label": "GAE",
+      "sub": "advantages Â",
+      "icon": "📈"
+     },
+     {
+      "id": "opt",
+      "label": "Optimiser",
+      "sub": "K epochs, clipped loss",
+      "icon": "⚙️"
+     },
+     {
+      "id": "pol",
+      "label": "Policy + value nets",
+      "sub": "θ, φ",
+      "icon": "🧠"
+     }
+    ],
+    "steps": [
+     {
+      "at": "roll",
+      "note": "Collect T steps from N parallel environments with the current (old) policy; store log-probs",
+      "ms": 0
+     },
+     {
+      "at": "gae",
+      "note": "Compute returns and GAE(λ) advantages using the value network; normalise advantages",
+      "ms": 1
+     },
+     {
+      "at": "opt",
+      "note": "Shuffle into minibatches; compute ratio r = π_θ / π_old",
+      "ms": 1
+     },
+     {
+      "at": "opt",
+      "note": "Loss = −min(rÂ, clip(r,1−ε,1+ε)Â) + c₁·value loss − c₂·entropy",
+      "ms": 1
+     },
+     {
+      "at": "pol",
+      "note": "Adam step; early-stop if approx KL to π_old exceeds a threshold",
+      "ms": 1,
+      "tone": "warn"
+     },
+     {
+      "at": "roll",
+      "note": "Replace π_old with π_θ and repeat",
+      "ms": 0,
+      "tone": "good"
+     }
+    ]
+   }
+  ]
+ }
+]
